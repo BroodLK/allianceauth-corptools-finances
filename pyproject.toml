@@ -42,10 +42,9 @@ dependencies = [
 urls.Changelog = "https://github.com/ppfeufer/aa-example-plugin/blob/master/CHANGELOG.md"
 urls.Tracker = "https://github.com/ppfeufer/aa-example-plugin/issues"
 
-[tool.hatch.version]
-path = "example/__init__.py"
-
 [tool.hatch.build]
 include = [
     "/example",
 ]
+[tool.hatch.version]
+path = "example/__init__.py"
