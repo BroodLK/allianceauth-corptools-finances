@@ -10,6 +10,6 @@ from finances import __version__
 class FinancesConfig(AppConfig):
     """App Config"""
 
-    name = "Finances"
-    label = "Finances"
+    name = "finances"
+    label = "finances"
     verbose_name = f"Finances v{__version__}"
