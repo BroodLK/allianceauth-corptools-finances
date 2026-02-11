@@ -51,6 +51,24 @@
                             {% endfor %}
                         </select>
                         <div class="form-text">{% translate "Hold Ctrl/Cmd to select multiple divisions." %}</div>
+                        <div
+                            class="finances-selected"
+                            data-selected-list="divisions"
+                            data-badge-class="bg-secondary-subtle text-secondary-emphasis"
+                            data-empty-text="{% translate "None" %}"
+                        >
+                            <div class="finances-selected__label small text-muted">{% translate "Selected" %}:</div>
+                            <div class="finances-selected__list">
+                                {% for division in divisions %}
+                                    {% if division.id in division_ids %}
+                                        <span class="badge bg-secondary-subtle text-secondary-emphasis">
+                                            {{ division.corporation.corporation.corporation_name }} -
+                                            {{ division.division }}{% if division.name %} {{ division.name }}{% endif %}
+                                        </span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-4">
                         <label for="ref_types" class="form-label">{% translate "Income Reference Types" %}</label>
@@ -62,6 +80,23 @@
                             {% endfor %}
                         </select>
                         <div class="form-text">{% translate "Leave empty to include all income types." %}</div>
+                        <div
+                            class="finances-selected"
+                            data-selected-list="ref_types"
+                            data-badge-class="bg-primary-subtle text-primary-emphasis"
+                            data-empty-text="{% translate "None" %}"
+                        >
+                            <div class="finances-selected__label small text-muted">{% translate "Selected" %}:</div>
+                            <div class="finances-selected__list">
+                                {% for ref in ref_type_choices %}
+                                    {% if ref.value in selected_ref_types %}
+                                        <span class="badge bg-primary-subtle text-primary-emphasis">
+                                            {{ ref.label }}
+                                        </span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-4">
                         <label for="expense_ref_types" class="form-label">{% translate "Expense Reference Types" %}</label>
@@ -73,6 +108,23 @@
                             {% endfor %}
                         </select>
                         <div class="form-text">{% translate "Leave empty to include all expense types." %}</div>
+                        <div
+                            class="finances-selected"
+                            data-selected-list="expense_ref_types"
+                            data-badge-class="bg-danger-subtle text-danger-emphasis"
+                            data-empty-text="{% translate "None" %}"
+                        >
+                            <div class="finances-selected__label small text-muted">{% translate "Selected" %}:</div>
+                            <div class="finances-selected__list">
+                                {% for ref in expense_ref_type_choices %}
+                                    {% if ref.value in selected_expense_ref_types %}
+                                        <span class="badge bg-danger-subtle text-danger-emphasis">
+                                            {{ ref.label }}
+                                        </span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">{% translate "Apply Filters" %}</button>
@@ -373,6 +425,18 @@
         }
         .finances-select--expense option:checked {
             background-color: var(--bs-danger-bg-subtle);
+        }
+        .finances-selected {
+            margin-top: 0.5rem;
+        }
+        .finances-selected__list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+        .finances-selected__empty {
+            font-size: 0.75rem;
+            color: var(--bs-secondary-color);
         }
         .finances-legend {
             display: flex;
@@ -692,6 +756,38 @@
             }
 
             renderChart(chart, data);
+        });
+
+        const updateSelectedList = (select, list, badgeClass, emptyText) => {
+            list.innerHTML = "";
+            const selected = Array.from(select.selectedOptions);
+            if (!selected.length) {
+                const empty = document.createElement("span");
+                empty.className = "finances-selected__empty";
+                empty.textContent = emptyText;
+                list.appendChild(empty);
+                return;
+            }
+            selected.forEach((option) => {
+                const badge = document.createElement("span");
+                badge.className = `badge ${badgeClass}`;
+                badge.textContent = option.textContent.trim();
+                list.appendChild(badge);
+            });
+        };
+
+        document.querySelectorAll(".finances-selected[data-selected-list]").forEach((container) => {
+            const selectId = container.getAttribute("data-selected-list");
+            const badgeClass = container.getAttribute("data-badge-class") || "bg-secondary-subtle";
+            const emptyText = container.getAttribute("data-empty-text") || "None";
+            const select = document.getElementById(selectId);
+            const list = container.querySelector(".finances-selected__list");
+            if (!select || !list) {
+                return;
+            }
+            const render = () => updateSelectedList(select, list, badgeClass, emptyText);
+            render();
+            select.addEventListener("change", render);
         });
     })();
 {% endblock %}
