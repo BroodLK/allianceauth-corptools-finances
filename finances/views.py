@@ -53,6 +53,65 @@ def _parse_date(value):
         return None
 
 
+def _series_stats(values, start_day):
+    if not values:
+        return {
+            "total": Decimal("0.00"),
+            "avg": Decimal("0.00"),
+            "max": Decimal("0.00"),
+            "max_date": None,
+            "active_days": 0,
+            "days": 0,
+        }
+
+    total = sum(values, Decimal("0.00"))
+    days = len(values)
+    avg = total / days if days else Decimal("0.00")
+    max_value = max(values)
+    max_index = values.index(max_value)
+    max_date = start_day + timedelta(days=max_index) if max_value > 0 else None
+    active_days = sum(1 for value in values if value > 0)
+
+    return {
+        "total": total,
+        "avg": avg,
+        "max": max_value,
+        "max_date": max_date,
+        "active_days": active_days,
+        "days": days,
+    }
+
+
+def _build_daily_series(entries, start_date, end_date, abs_values=False):
+    series = list(
+        entries.annotate(day=TruncDate("date"))
+        .values("day")
+        .annotate(total=Coalesce(Sum("amount"), Decimal("0.00")))
+        .order_by("day")
+    )
+    totals_by_day = {row["day"]: row["total"] for row in series}
+
+    days_count = (end_date.date() - start_date.date()).days
+    values = []
+    points = []
+    for offset in range(days_count + 1):
+        day = start_date.date() + timedelta(days=offset)
+        total = totals_by_day.get(day, Decimal("0.00"))
+        if abs_values:
+            total = abs(total)
+        values.append(total)
+        points.append(
+            {
+                "date": day.isoformat(),
+                "total": float(total),
+            }
+        )
+
+    stats = _series_stats(values, start_date.date())
+
+    return points, stats
+
+
 @login_required
 def dashboard(request) -> HttpResponse:
     if not _user_can_view_wallets(request.user):
@@ -125,11 +184,32 @@ def dashboard(request) -> HttpResponse:
     if not selected_ref_types:
         selected_ref_types = ref_type_options
 
+    expense_ref_type_options = list(
+        entries.filter(amount__lt=0)
+        .values_list("ref_type", flat=True)
+        .distinct()
+        .order_by("ref_type")
+    )
+    expense_ref_type_choices = [
+        {"value": ref_type, "label": _format_ref_type(ref_type)}
+        for ref_type in expense_ref_type_options
+    ]
+
+    selected_expense_ref_types = request.GET.getlist("expense_ref_types")
+    if selected_expense_ref_types:
+        selected_expense_ref_types = [
+            ref for ref in selected_expense_ref_types if ref in expense_ref_type_options
+        ]
+    if not selected_expense_ref_types:
+        selected_expense_ref_types = expense_ref_type_options
+
     income_entries = entries.filter(amount__gt=0)
     if selected_ref_types:
         income_entries = income_entries.filter(ref_type__in=selected_ref_types)
 
     expense_entries = entries.filter(amount__lt=0)
+    if selected_expense_ref_types:
+        expense_entries = expense_entries.filter(ref_type__in=selected_expense_ref_types)
 
     income_total = income_entries.aggregate(
         total=Coalesce(Sum("amount"), Decimal("0.00"))
@@ -155,23 +235,12 @@ def dashboard(request) -> HttpResponse:
         row["label"] = _format_ref_type(row["ref_type"])
         row["total_abs"] = abs(row["total"])
 
-    income_series = list(
-        income_entries.annotate(day=TruncDate("date"))
-        .values("day")
-        .annotate(total=Coalesce(Sum("amount"), Decimal("0.00")))
-        .order_by("day")
+    income_series_points, income_stats = _build_daily_series(
+        income_entries, start_date, end_date
     )
-    income_totals_by_day = {row["day"]: row["total"] for row in income_series}
-    days_count = (end_date.date() - start_date.date()).days
-    income_series_points = []
-    for offset in range(days_count + 1):
-        day = start_date.date() + timedelta(days=offset)
-        income_series_points.append(
-            {
-                "date": day.isoformat(),
-                "total": float(income_totals_by_day.get(day, Decimal("0.00"))),
-            }
-        )
+    expense_series_points, expense_stats = _build_daily_series(
+        expense_entries, start_date, end_date, abs_values=True
+    )
 
     division_totals = {
         row["division_id"]: row
@@ -186,7 +255,7 @@ def dashboard(request) -> HttpResponse:
                 Decimal("0.00"),
             ),
             expenses=Coalesce(
-                Sum("amount", filter=Q(amount__lt=0)),
+                Sum("amount", filter=Q(amount__lt=0, ref_type__in=selected_expense_ref_types)),
                 Decimal("0.00"),
             ),
         )
@@ -221,6 +290,8 @@ def dashboard(request) -> HttpResponse:
         "divisions": all_divisions,
         "ref_type_choices": ref_type_choices,
         "selected_ref_types": set(selected_ref_types),
+        "expense_ref_type_choices": expense_ref_type_choices,
+        "selected_expense_ref_types": set(selected_expense_ref_types),
         "summary": {
             "income_total": income_total,
             "expense_total": expense_total,
@@ -233,6 +304,9 @@ def dashboard(request) -> HttpResponse:
         "income_by_ref": income_by_ref,
         "expense_by_ref": expense_by_ref,
         "income_series": income_series_points,
+        "expense_series": expense_series_points,
+        "income_stats": income_stats,
+        "expense_stats": expense_stats,
     }
 
     return render(request, "finances/index.html", context)

@@ -63,6 +63,17 @@
                         </select>
                         <div class="form-text">{% translate "Leave empty to include all income types." %}</div>
                     </div>
+                    <div class="col-md-5">
+                        <label for="expense_ref_types" class="form-label">{% translate "Expense Reference Types" %}</label>
+                        <select id="expense_ref_types" name="expense_ref_types" class="form-select" multiple size="6">
+                            {% for ref in expense_ref_type_choices %}
+                                <option value="{{ ref.value }}" {% if ref.value in selected_expense_ref_types %}selected{% endif %}>
+                                    {{ ref.label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">{% translate "Leave empty to include all expense types." %}</div>
+                    </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">{% translate "Apply Filters" %}</button>
                     </div>
@@ -87,7 +98,7 @@
             <div class="col-md-3">
                 <div class="card h-100 border-danger">
                     <div class="card-body">
-                        <div class="text-muted">{% translate "Expenses" %}</div>
+                        <div class="text-muted">{% translate "Expenses (filtered)" %}</div>
                         <div class="fs-4 text-danger">
                             {{ summary.expense_total_abs|floatformat:0|intcomma }}
                         </div>
@@ -122,41 +133,77 @@
             </div>
         </div>
         <div class="mb-3 text-muted small">
-            {% translate "Income totals respect the selected income reference types; expenses include all types." %}
+            {% translate "Income and expense totals respect their selected reference types." %}
         </div>
 
         <div class="row g-3">
-            <div class="col-lg-6">
+            <div class="col-12">
                 <div class="card h-100">
                     <div class="card-header">{% translate "Income by Reference Type" %}</div>
-                    <div class="card-body p-0">
-                        <div class="p-3">
-                            <div class="finances-line-chart" data-chart="income">
-                                <svg viewBox="0 0 600 200" preserveAspectRatio="none" role="img" aria-label="{% translate "Income trend" %}">
-                                    <path class="finances-line-chart__area" d=""></path>
-                                    <path class="finances-line-chart__line" d=""></path>
-                                </svg>
-                                <div class="finances-line-chart__empty text-muted d-none">
-                                    {% translate "No income data for this period." %}
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                            <div>
+                                <div class="fw-semibold">{% translate "Daily income trend" %}</div>
+                                <div class="text-muted small">
+                                    {% blocktranslate %}From {{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}{% endblocktranslate %}
                                 </div>
                             </div>
-                            {{ income_series|json_script:"income-series-data" }}
+                            <div class="finances-legend">
+                                <span class="finances-legend__item">
+                                    <span class="finances-legend__swatch" data-theme="income"></span>
+                                    {% translate "Income (filtered)" %}
+                                </span>
+                            </div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-sm mb-0">
+                        <div class="row row-cols-2 row-cols-md-4 g-2 text-center small mb-3">
+                            <div class="col">
+                                <div class="text-muted">{% translate "Total" %}</div>
+                                <div class="fw-semibold">{{ income_stats.total|floatformat:0|intcomma }}</div>
+                            </div>
+                            <div class="col">
+                                <div class="text-muted">{% translate "Avg / Day" %}</div>
+                                <div class="fw-semibold">{{ income_stats.avg|floatformat:0|intcomma }}</div>
+                            </div>
+                            <div class="col">
+                                <div class="text-muted">{% translate "Peak Day" %}</div>
+                                <div class="fw-semibold">{{ income_stats.max|floatformat:0|intcomma }}</div>
+                                <div class="text-muted">{{ income_stats.max_date|date:"Y-m-d" }}</div>
+                            </div>
+                            <div class="col">
+                                <div class="text-muted">{% translate "Active Days" %}</div>
+                                <div class="fw-semibold">{{ income_stats.active_days }}/{{ income_stats.days }}</div>
+                            </div>
+                        </div>
+                        <div class="finances-line-chart" data-chart="income" data-theme="income">
+                            <svg viewBox="0 0 600 220" preserveAspectRatio="none" role="img" aria-label="{% translate "Income trend" %}">
+                                <g data-grid></g>
+                                <g data-axis></g>
+                                <path class="finances-line-chart__area" d=""></path>
+                                <path class="finances-line-chart__line" d=""></path>
+                                <line class="finances-line-chart__hover-line" x1="0" y1="0" x2="0" y2="0"></line>
+                                <circle class="finances-line-chart__hover-point" cx="0" cy="0" r="3"></circle>
+                            </svg>
+                            <div class="finances-line-chart__tooltip d-none"></div>
+                            <div class="finances-line-chart__empty text-muted d-none">
+                                {% translate "No income data for this period." %}
+                            </div>
+                        </div>
+                        {{ income_series|json_script:"income-series-data" }}
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm mb-0 finances-table-centered">
                                 <thead>
                                     <tr>
                                         <th>{% translate "Type" %}</th>
-                                        <th class="text-end">{% translate "Total" %}</th>
-                                        <th class="text-end">{% translate "Entries" %}</th>
+                                        <th>{% translate "Total" %}</th>
+                                        <th>{% translate "Entries" %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for row in income_by_ref %}
                                         <tr>
                                             <td>{{ row.label }}</td>
-                                            <td class="text-end">{{ row.total|floatformat:0|intcomma }}</td>
-                                            <td class="text-end">{{ row.count }}</td>
+                                            <td>{{ row.total|floatformat:0|intcomma }}</td>
+                                            <td>{{ row.count }}</td>
                                         </tr>
                                     {% empty %}
                                         <tr>
@@ -171,25 +218,76 @@
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
+        </div>
+
+        <div class="row g-3 mt-0">
+            <div class="col-12">
                 <div class="card h-100">
                     <div class="card-header">{% translate "Expenses by Reference Type" %}</div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm mb-0">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                            <div>
+                                <div class="fw-semibold">{% translate "Daily expense trend" %}</div>
+                                <div class="text-muted small">
+                                    {% blocktranslate %}From {{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}{% endblocktranslate %}
+                                </div>
+                            </div>
+                            <div class="finances-legend">
+                                <span class="finances-legend__item">
+                                    <span class="finances-legend__swatch" data-theme="expenses"></span>
+                                    {% translate "Expenses" %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="row row-cols-2 row-cols-md-4 g-2 text-center small mb-3">
+                            <div class="col">
+                                <div class="text-muted">{% translate "Total" %}</div>
+                                <div class="fw-semibold">{{ expense_stats.total|floatformat:0|intcomma }}</div>
+                            </div>
+                            <div class="col">
+                                <div class="text-muted">{% translate "Avg / Day" %}</div>
+                                <div class="fw-semibold">{{ expense_stats.avg|floatformat:0|intcomma }}</div>
+                            </div>
+                            <div class="col">
+                                <div class="text-muted">{% translate "Peak Day" %}</div>
+                                <div class="fw-semibold">{{ expense_stats.max|floatformat:0|intcomma }}</div>
+                                <div class="text-muted">{{ expense_stats.max_date|date:"Y-m-d" }}</div>
+                            </div>
+                            <div class="col">
+                                <div class="text-muted">{% translate "Active Days" %}</div>
+                                <div class="fw-semibold">{{ expense_stats.active_days }}/{{ expense_stats.days }}</div>
+                            </div>
+                        </div>
+                        <div class="finances-line-chart" data-chart="expenses" data-theme="expenses">
+                            <svg viewBox="0 0 600 220" preserveAspectRatio="none" role="img" aria-label="{% translate "Expense trend" %}">
+                                <g data-grid></g>
+                                <g data-axis></g>
+                                <path class="finances-line-chart__area" d=""></path>
+                                <path class="finances-line-chart__line" d=""></path>
+                                <line class="finances-line-chart__hover-line" x1="0" y1="0" x2="0" y2="0"></line>
+                                <circle class="finances-line-chart__hover-point" cx="0" cy="0" r="3"></circle>
+                            </svg>
+                            <div class="finances-line-chart__tooltip d-none"></div>
+                            <div class="finances-line-chart__empty text-muted d-none">
+                                {% translate "No expense data for this period." %}
+                            </div>
+                        </div>
+                        {{ expense_series|json_script:"expense-series-data" }}
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm mb-0 finances-table-centered">
                                 <thead>
                                     <tr>
                                         <th>{% translate "Type" %}</th>
-                                        <th class="text-end">{% translate "Total" %}</th>
-                                        <th class="text-end">{% translate "Entries" %}</th>
+                                        <th>{% translate "Total" %}</th>
+                                        <th>{% translate "Entries" %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for row in expense_by_ref %}
                                         <tr>
                                             <td>{{ row.label }}</td>
-                                            <td class="text-end">{{ row.total_abs|floatformat:0|intcomma }}</td>
-                                            <td class="text-end">{{ row.count }}</td>
+                                            <td>{{ row.total_abs|floatformat:0|intcomma }}</td>
+                                            <td>{{ row.count }}</td>
                                         </tr>
                                     {% empty %}
                                         <tr>
@@ -210,15 +308,15 @@
             <div class="card-header">{% translate "Division Summary" %}</div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-sm mb-0">
+                    <table class="table table-sm mb-0 finances-table-centered">
                         <thead>
                             <tr>
                                 <th>{% translate "Corporation" %}</th>
                                 <th>{% translate "Division" %}</th>
-                                <th class="text-end">{% translate "Balance" %}</th>
-                                <th class="text-end">{% translate "Income (filtered)" %}</th>
-                                <th class="text-end">{% translate "Expenses" %}</th>
-                                <th class="text-end">{% translate "Net" %}</th>
+                                <th>{% translate "Balance" %}</th>
+                                <th>{% translate "Income (filtered)" %}</th>
+                                <th>{% translate "Expenses" %}</th>
+                                <th>{% translate "Net" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -226,10 +324,10 @@
                                 <tr>
                                     <td>{{ row.corp_name }}</td>
                                     <td>{{ row.division }}{% if row.name %} {{ row.name }}{% endif %}</td>
-                                    <td class="text-end">{{ row.balance|floatformat:0|intcomma }}</td>
-                                    <td class="text-end">{{ row.income|floatformat:0|intcomma }}</td>
-                                    <td class="text-end">{{ row.expenses|floatformat:0|intcomma }}</td>
-                                    <td class="text-end">{{ row.net|floatformat:0|intcomma }}</td>
+                                    <td>{{ row.balance|floatformat:0|intcomma }}</td>
+                                    <td>{{ row.income|floatformat:0|intcomma }}</td>
+                                    <td>{{ row.expenses|floatformat:0|intcomma }}</td>
+                                    <td>{{ row.net|floatformat:0|intcomma }}</td>
                                 </tr>
                             {% empty %}
                                 <tr>
@@ -251,14 +349,51 @@
 
 {% block extra_css %}
     <style>
+        .finances-table-centered th,
+        .finances-table-centered td {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .finances-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--bs-secondary-color);
+        }
+        .finances-legend__item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .finances-legend__swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            border: 1px solid var(--bs-border-color);
+            background: var(--bs-primary);
+        }
+        .finances-legend__swatch[data-theme="expenses"] {
+            background: var(--bs-danger);
+        }
+        .finances-legend__swatch[data-theme="income"] {
+            background: var(--bs-primary);
+        }
         .finances-line-chart {
             position: relative;
             width: 100%;
-            height: 180px;
+            height: 220px;
             background: var(--bs-body-bg);
             border: 1px solid var(--bs-border-color);
             border-radius: 0.375rem;
             padding: 0.5rem;
+            --chart-line: var(--bs-primary);
+            --chart-fill: var(--bs-primary-bg-subtle);
+        }
+        .finances-line-chart[data-theme="expenses"] {
+            --chart-line: var(--bs-danger);
+            --chart-fill: var(--bs-danger-bg-subtle);
         }
         .finances-line-chart svg {
             width: 100%;
@@ -266,12 +401,45 @@
         }
         .finances-line-chart__line {
             fill: none;
-            stroke: var(--bs-primary);
+            stroke: var(--chart-line);
             stroke-width: 2;
         }
         .finances-line-chart__area {
-            fill: var(--bs-primary-bg-subtle);
-            opacity: 0.5;
+            fill: var(--chart-fill);
+            opacity: 0.45;
+        }
+        .finances-line-chart__grid-line {
+            stroke: var(--bs-border-color);
+            stroke-dasharray: 3 3;
+        }
+        .finances-line-chart__axis text {
+            fill: var(--bs-secondary-color);
+            font-size: 10px;
+        }
+        .finances-line-chart__hover-line {
+            stroke: var(--bs-secondary-color);
+            stroke-width: 1;
+            stroke-dasharray: 4 4;
+            opacity: 0;
+        }
+        .finances-line-chart__hover-point {
+            fill: var(--chart-line);
+            stroke: var(--bs-body-bg);
+            stroke-width: 1.5;
+            opacity: 0;
+        }
+        .finances-line-chart__tooltip {
+            position: absolute;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            background: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            font-size: 0.75rem;
+            color: var(--bs-body-color);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            pointer-events: none;
+            transform: translate(-50%, -120%);
+            white-space: nowrap;
         }
         .finances-line-chart__empty {
             position: absolute;
@@ -288,68 +456,218 @@
 
 {% block extra_script %}
     (function () {
-        const dataElement = document.getElementById("income-series-data");
-        const chart = document.querySelector('[data-chart="income"]');
-        if (!dataElement || !chart) {
-            return;
-        }
+        const charts = [
+            {
+                dataId: "income-series-data",
+                selector: '[data-chart="income"]',
+                label: "Income",
+            },
+            {
+                dataId: "expense-series-data",
+                selector: '[data-chart="expenses"]',
+                label: "Expenses",
+            },
+        ];
 
-        let data = [];
-        try {
-            data = JSON.parse(dataElement.textContent || "[]");
-        } catch (err) {
-            data = [];
-        }
-
-        const emptyState = chart.querySelector(".finances-line-chart__empty");
-        const svg = chart.querySelector("svg");
-        const area = chart.querySelector(".finances-line-chart__area");
-        const line = chart.querySelector(".finances-line-chart__line");
-
-        if (!svg || !area || !line) {
-            return;
-        }
-
-        if (!data.length) {
-            emptyState?.classList.remove("d-none");
-            return;
-        }
-
-        const values = data.map((point) => Number(point.total) || 0);
-        const maxValue = Math.max(...values);
-
-        if (maxValue <= 0) {
-            emptyState?.classList.remove("d-none");
-            return;
-        }
-
-        const width = 600;
-        const height = 200;
-        const padding = 20;
-        const baseline = height - padding;
-        const top = padding;
-        const usableHeight = baseline - top;
-        const count = values.length;
-        const step = count > 1 ? (width - padding * 2) / (count - 1) : 0;
-
-        const points = values.map((value, index) => {
-            const x = padding + index * step;
-            const y = baseline - (value / maxValue) * usableHeight;
-            return [x, y];
+        const numberFormatter = new Intl.NumberFormat(undefined, {
+            maximumFractionDigits: 0,
         });
 
-        const linePath = points
-            .map((point, index) => `${index === 0 ? "M" : "L"} ${point[0]} ${point[1]}`)
-            .join(" ");
+        const renderChart = (chart, data) => {
+            const emptyState = chart.querySelector(".finances-line-chart__empty");
+            const svg = chart.querySelector("svg");
+            const area = chart.querySelector(".finances-line-chart__area");
+            const line = chart.querySelector(".finances-line-chart__line");
+            const grid = chart.querySelector("[data-grid]");
+            const axis = chart.querySelector("[data-axis]");
+            const hoverLine = chart.querySelector(".finances-line-chart__hover-line");
+            const hoverPoint = chart.querySelector(".finances-line-chart__hover-point");
+            const tooltip = chart.querySelector(".finances-line-chart__tooltip");
 
-        const areaPath = [
-            `M ${points[0][0]} ${baseline}`,
-            ...points.map((point, index) => `${index === 0 ? "L" : "L"} ${point[0]} ${point[1]}`),
-            `L ${points[points.length - 1][0]} ${baseline}`,
-            "Z",
-        ].join(" ");
+            if (!svg || !area || !line || !grid || !axis) {
+                return;
+            }
 
-        area.setAttribute("d", areaPath);
-        line.setAttribute("d", linePath);
+            if (!data.length) {
+                emptyState?.classList.remove("d-none");
+                return;
+            }
+
+            const values = data.map((point) => Number(point.total) || 0);
+            const maxValue = Math.max(...values);
+
+            if (maxValue <= 0) {
+                emptyState?.classList.remove("d-none");
+                return;
+            }
+
+            const width = 600;
+            const height = 220;
+            const padding = {
+                top: 20,
+                right: 20,
+                bottom: 30,
+                left: 52,
+            };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            const count = values.length;
+            const step = count > 1 ? chartWidth / (count - 1) : 0;
+
+            const points = values.map((value, index) => {
+                const x = padding.left + index * step;
+                const y = padding.top + chartHeight - (value / maxValue) * chartHeight;
+                return {
+                    x,
+                    y,
+                    value,
+                    date: data[index].date,
+                };
+            });
+
+            grid.innerHTML = "";
+            axis.innerHTML = "";
+            axis.classList.add("finances-line-chart__axis");
+
+            const ns = "http://www.w3.org/2000/svg";
+            const tickCount = 4;
+            for (let i = 0; i <= tickCount; i += 1) {
+                const y = padding.top + (chartHeight / tickCount) * i;
+                const value = Math.round(maxValue * (1 - i / tickCount));
+                const gridLine = document.createElementNS(ns, "line");
+                gridLine.setAttribute("x1", padding.left);
+                gridLine.setAttribute("x2", width - padding.right);
+                gridLine.setAttribute("y1", y);
+                gridLine.setAttribute("y2", y);
+                gridLine.setAttribute("class", "finances-line-chart__grid-line");
+                grid.appendChild(gridLine);
+
+                const label = document.createElementNS(ns, "text");
+                label.setAttribute("x", padding.left - 6);
+                label.setAttribute("y", y + 4);
+                label.setAttribute("text-anchor", "end");
+                label.textContent = numberFormatter.format(value);
+                axis.appendChild(label);
+            }
+
+            const axisLabel = document.createElementNS(ns, "text");
+            axisLabel.setAttribute("x", padding.left);
+            axisLabel.setAttribute("y", padding.top - 8);
+            axisLabel.setAttribute("text-anchor", "start");
+            axisLabel.textContent = "ISK";
+            axis.appendChild(axisLabel);
+
+            const includeYear = count > 180;
+            const dateFormatterOptions = {
+                month: "short",
+                day: "numeric",
+            };
+            if (includeYear) {
+                dateFormatterOptions.year = "numeric";
+            }
+            const dateFormatter = new Intl.DateTimeFormat(undefined, dateFormatterOptions);
+            const tooltipDateFormatter = new Intl.DateTimeFormat(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+            });
+
+            const xTickCount = 3;
+            const tickIndexes = Array.from(new Set(
+                Array.from({ length: xTickCount + 1 }, (_, idx) =>
+                    Math.round((count - 1) * (idx / xTickCount))
+                )
+            )).sort((a, b) => a - b);
+
+            tickIndexes.forEach((index) => {
+                const point = points[index];
+                const label = document.createElementNS(ns, "text");
+                label.setAttribute("x", point.x);
+                label.setAttribute("y", height - 8);
+                label.setAttribute("text-anchor", "middle");
+                label.textContent = dateFormatter.format(new Date(point.date));
+                axis.appendChild(label);
+            });
+
+            const linePath = points
+                .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+                .join(" ");
+
+            const areaPath = [
+                `M ${points[0].x} ${padding.top + chartHeight}`,
+                ...points.map((point) => `L ${point.x} ${point.y}`),
+                `L ${points[points.length - 1].x} ${padding.top + chartHeight}`,
+                "Z",
+            ].join(" ");
+
+            area.setAttribute("d", areaPath);
+            line.setAttribute("d", linePath);
+
+            const showHover = (index) => {
+                if (!hoverLine || !hoverPoint || !tooltip) {
+                    return;
+                }
+                const point = points[index];
+                hoverLine.setAttribute("x1", point.x);
+                hoverLine.setAttribute("x2", point.x);
+                hoverLine.setAttribute("y1", padding.top);
+                hoverLine.setAttribute("y2", padding.top + chartHeight);
+                hoverLine.style.opacity = "1";
+                hoverPoint.setAttribute("cx", point.x);
+                hoverPoint.setAttribute("cy", point.y);
+                hoverPoint.style.opacity = "1";
+
+                const chartRect = chart.getBoundingClientRect();
+                const svgRect = svg.getBoundingClientRect();
+                const left = (point.x / width) * svgRect.width + (svgRect.left - chartRect.left);
+                const top = (point.y / height) * svgRect.height + (svgRect.top - chartRect.top);
+
+                tooltip.textContent = `${tooltipDateFormatter.format(new Date(point.date))} \u2022 ${numberFormatter.format(point.value)} ISK`;
+                tooltip.style.left = `${left}px`;
+                tooltip.style.top = `${top}px`;
+                tooltip.classList.remove("d-none");
+            };
+
+            const hideHover = () => {
+                if (hoverLine) {
+                    hoverLine.style.opacity = "0";
+                }
+                if (hoverPoint) {
+                    hoverPoint.style.opacity = "0";
+                }
+                if (tooltip) {
+                    tooltip.classList.add("d-none");
+                }
+            };
+
+            chart.addEventListener("mousemove", (event) => {
+                const rect = svg.getBoundingClientRect();
+                const relativeX = ((event.clientX - rect.left) / rect.width) * width;
+                const clampedX = Math.max(padding.left, Math.min(width - padding.right, relativeX));
+                const index = count > 1
+                    ? Math.round(((clampedX - padding.left) / chartWidth) * (count - 1))
+                    : 0;
+                showHover(index);
+            });
+
+            chart.addEventListener("mouseleave", hideHover);
+        };
+
+        charts.forEach(({ dataId, selector }) => {
+            const dataElement = document.getElementById(dataId);
+            const chart = document.querySelector(selector);
+            if (!dataElement || !chart) {
+                return;
+            }
+
+            let data = [];
+            try {
+                data = JSON.parse(dataElement.textContent || "[]");
+            } catch (err) {
+                data = [];
+            }
+
+            renderChart(chart, data);
+        });
     })();
 {% endblock %}
