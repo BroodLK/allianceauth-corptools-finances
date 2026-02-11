@@ -183,6 +183,53 @@ def _build_daily_series(entries, start_date, end_date, abs_values=False):
     return points, stats
 
 
+def _build_series_by_ref(entries, ref_types, start_date, end_date, abs_values=False):
+    if not ref_types:
+        return []
+
+    series_rows = (
+        entries.filter(ref_type__in=ref_types)
+        .annotate(day=TruncDate("date"))
+        .values("day", "ref_type")
+        .annotate(total=Coalesce(Sum("amount"), Decimal("0.00")))
+        .order_by("day")
+    )
+
+    totals_by_ref = {ref_type: {} for ref_type in ref_types}
+    for row in series_rows:
+        total = row["total"]
+        if abs_values:
+            total = abs(total)
+        totals_by_ref[row["ref_type"]][row["day"]] = total
+
+    days_count = (end_date.date() - start_date.date()).days
+    output = []
+
+    for ref_type in ref_types:
+        points = []
+        total_sum = Decimal("0.00")
+        for offset in range(days_count + 1):
+            day = start_date.date() + timedelta(days=offset)
+            value = totals_by_ref.get(ref_type, {}).get(day, Decimal("0.00"))
+            total_sum += value
+            points.append(
+                {
+                    "date": day.isoformat(),
+                    "total": float(value),
+                }
+            )
+        output.append(
+            {
+                "key": ref_type,
+                "label": _format_ref_type(ref_type),
+                "total": float(total_sum),
+                "points": points,
+            }
+        )
+
+    return output
+
+
 @login_required
 def dashboard(request) -> HttpResponse:
     if not _user_can_view_wallets(request.user):
@@ -309,8 +356,14 @@ def dashboard(request) -> HttpResponse:
     income_series_points, income_stats = _build_daily_series(
         income_entries, start_date, end_date
     )
+    income_series_by_ref = _build_series_by_ref(
+        income_entries, selected_ref_types, start_date, end_date
+    )
     expense_series_points, expense_stats = _build_daily_series(
         expense_entries, start_date, end_date, abs_values=True
+    )
+    expense_series_by_ref = _build_series_by_ref(
+        expense_entries, selected_expense_ref_types, start_date, end_date, abs_values=True
     )
 
     division_totals = {
@@ -481,7 +534,9 @@ def dashboard(request) -> HttpResponse:
         "income_by_ref": income_by_ref,
         "expense_by_ref": expense_by_ref,
         "income_series": income_series_points,
+        "income_series_by_ref": income_series_by_ref,
         "expense_series": expense_series_points,
+        "expense_series_by_ref": expense_series_by_ref,
         "income_stats": income_stats,
         "expense_stats": expense_stats,
         "drilldown": drilldown,

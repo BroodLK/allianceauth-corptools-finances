@@ -200,11 +200,22 @@
                                     {% blocktranslate %}From {{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}{% endblocktranslate %}
                                 </div>
                             </div>
-                            <div class="finances-legend">
-                                <span class="finances-legend__item">
-                                    <span class="finances-legend__swatch" data-theme="income"></span>
-                                    {% translate "Income (filtered)" %}
-                                </span>
+                            <div class="finances-chart-controls">
+                                <div class="finances-legend" data-legend="income">
+                                    <span class="finances-legend__item">
+                                        <span class="finances-legend__swatch" data-theme="income"></span>
+                                        {% translate "Income (filtered)" %}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    data-chart-toggle="income"
+                                    data-toggle-breakout="{% translate "Break out by ref type" %}"
+                                    data-toggle-total="{% translate "Show total" %}"
+                                >
+                                    {% translate "Break out by ref type" %}
+                                </button>
                             </div>
                         </div>
                         <div class="row row-cols-2 row-cols-md-4 g-2 text-center small mb-3">
@@ -226,14 +237,16 @@
                                 <div class="fw-semibold">{{ income_stats.active_days }}/{{ income_stats.days }}</div>
                             </div>
                         </div>
-                        <div class="finances-line-chart" data-chart="income" data-theme="income">
+                        <div class="finances-line-chart" data-chart="income" data-theme="income" data-total-label="{% translate "Income (filtered)" %}">
                             <svg viewBox="0 0 600 440" preserveAspectRatio="none" role="img" aria-label="{% translate "Income trend" %}">
                                 <g data-grid></g>
                                 <g data-axis></g>
+                                <g data-series></g>
                                 <path class="finances-line-chart__area" d=""></path>
                                 <path class="finances-line-chart__line" d=""></path>
                                 <line class="finances-line-chart__hover-line" x1="0" y1="0" x2="0" y2="0"></line>
                                 <circle class="finances-line-chart__hover-point" cx="0" cy="0" r="3"></circle>
+                                <g data-hover-points></g>
                             </svg>
                             <div class="finances-line-chart__tooltip d-none"></div>
                             <div class="finances-line-chart__empty text-muted d-none">
@@ -241,6 +254,7 @@
                             </div>
                         </div>
                         {{ income_series|json_script:"income-series-data" }}
+                        {{ income_series_by_ref|json_script:"income-series-by-ref-data" }}
                         <div class="table-responsive mt-3">
                             <table class="table table-sm mb-0 finances-table-centered">
                                 <thead>
@@ -284,11 +298,22 @@
                                     {% blocktranslate %}From {{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}{% endblocktranslate %}
                                 </div>
                             </div>
-                            <div class="finances-legend">
-                                <span class="finances-legend__item">
-                                    <span class="finances-legend__swatch" data-theme="expenses"></span>
-                                    {% translate "Expenses" %}
-                                </span>
+                            <div class="finances-chart-controls">
+                                <div class="finances-legend" data-legend="expenses">
+                                    <span class="finances-legend__item">
+                                        <span class="finances-legend__swatch" data-theme="expenses"></span>
+                                        {% translate "Expenses" %}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    data-chart-toggle="expenses"
+                                    data-toggle-breakout="{% translate "Break out by ref type" %}"
+                                    data-toggle-total="{% translate "Show total" %}"
+                                >
+                                    {% translate "Break out by ref type" %}
+                                </button>
                             </div>
                         </div>
                         <div class="row row-cols-2 row-cols-md-4 g-2 text-center small mb-3">
@@ -310,14 +335,16 @@
                                 <div class="fw-semibold">{{ expense_stats.active_days }}/{{ expense_stats.days }}</div>
                             </div>
                         </div>
-                        <div class="finances-line-chart" data-chart="expenses" data-theme="expenses">
+                        <div class="finances-line-chart" data-chart="expenses" data-theme="expenses" data-total-label="{% translate "Expenses (filtered)" %}">
                             <svg viewBox="0 0 600 440" preserveAspectRatio="none" role="img" aria-label="{% translate "Expense trend" %}">
                                 <g data-grid></g>
                                 <g data-axis></g>
+                                <g data-series></g>
                                 <path class="finances-line-chart__area" d=""></path>
                                 <path class="finances-line-chart__line" d=""></path>
                                 <line class="finances-line-chart__hover-line" x1="0" y1="0" x2="0" y2="0"></line>
                                 <circle class="finances-line-chart__hover-point" cx="0" cy="0" r="3"></circle>
+                                <g data-hover-points></g>
                             </svg>
                             <div class="finances-line-chart__tooltip d-none"></div>
                             <div class="finances-line-chart__empty text-muted d-none">
@@ -325,6 +352,7 @@
                             </div>
                         </div>
                         {{ expense_series|json_script:"expense-series-data" }}
+                        {{ expense_series_by_ref|json_script:"expense-series-by-ref-data" }}
                         <div class="table-responsive mt-3">
                             <table class="table table-sm mb-0 finances-table-centered">
                                 <thead>
@@ -545,6 +573,13 @@
         .finances-drill-row:hover {
             background-color: var(--bs-secondary-bg-subtle);
         }
+        .finances-chart-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
         .finances-legend {
             display: flex;
             flex-wrap: wrap;
@@ -595,9 +630,18 @@
             stroke: var(--chart-line);
             stroke-width: 2;
         }
+        .finances-line-chart__series-line {
+            fill: none;
+            stroke-width: 1.6;
+            opacity: 0.9;
+        }
         .finances-line-chart__area {
             fill: var(--chart-fill);
             opacity: 0.45;
+        }
+        .finances-line-chart.is-breakout .finances-line-chart__area,
+        .finances-line-chart.is-breakout .finances-line-chart__line {
+            display: none;
         }
         .finances-line-chart__grid-line {
             stroke: var(--bs-border-color);
@@ -619,6 +663,10 @@
             stroke-width: 1.5;
             opacity: 0;
         }
+        .finances-line-chart [data-hover-points] circle {
+            stroke: var(--bs-body-bg);
+            stroke-width: 1.5;
+        }
         .finances-line-chart__tooltip {
             position: absolute;
             padding: 0.25rem 0.5rem;
@@ -631,6 +679,23 @@
             pointer-events: none;
             transform: translate(-50%, -120%);
             white-space: nowrap;
+        }
+        .finances-tooltip-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            margin-top: 0.25rem;
+        }
+        .finances-tooltip-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .finances-tooltip-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            flex-shrink: 0;
         }
         .finances-line-chart__empty {
             position: absolute;
@@ -650,13 +715,17 @@
         const charts = [
             {
                 dataId: "income-series-data",
+                breakoutId: "income-series-by-ref-data",
                 selector: '[data-chart="income"]',
-                label: "Income",
+                toggleSelector: '[data-chart-toggle="income"]',
+                legendSelector: '[data-legend="income"]',
             },
             {
                 dataId: "expense-series-data",
+                breakoutId: "expense-series-by-ref-data",
                 selector: '[data-chart="expenses"]',
-                label: "Expenses",
+                toggleSelector: '[data-chart-toggle="expenses"]',
+                legendSelector: '[data-legend="expenses"]',
             },
         ];
 
@@ -667,27 +736,57 @@
             maximumFractionDigits: 1,
         });
 
-        const renderChart = (chart, data) => {
+        const getSeriesColor = (key, index, baseHue) => {
+            const hue = (baseHue + index * 37) % 360;
+            return `hsl(${hue}, 70%, 45%)`;
+        };
+
+        const renderLegend = (legend, seriesList) => {
+            if (!legend) {
+                return;
+            }
+            legend.innerHTML = "";
+            seriesList.forEach((series) => {
+                const item = document.createElement("span");
+                item.className = "finances-legend__item";
+                const swatch = document.createElement("span");
+                swatch.className = "finances-legend__swatch";
+                swatch.style.background = series.color;
+                item.appendChild(swatch);
+                const label = document.createElement("span");
+                label.textContent = series.label;
+                item.appendChild(label);
+                legend.appendChild(item);
+            });
+        };
+
+        const renderChart = (chart, seriesList, mode) => {
             const emptyState = chart.querySelector(".finances-line-chart__empty");
             const svg = chart.querySelector("svg");
             const area = chart.querySelector(".finances-line-chart__area");
             const line = chart.querySelector(".finances-line-chart__line");
             const grid = chart.querySelector("[data-grid]");
             const axis = chart.querySelector("[data-axis]");
+            const seriesGroup = chart.querySelector("[data-series]");
             const hoverLine = chart.querySelector(".finances-line-chart__hover-line");
             const hoverPoint = chart.querySelector(".finances-line-chart__hover-point");
+            const hoverPointsGroup = chart.querySelector("[data-hover-points]");
             const tooltip = chart.querySelector(".finances-line-chart__tooltip");
 
-            if (!svg || !area || !line || !grid || !axis) {
+            if (!svg || !area || !line || !grid || !axis || !seriesGroup) {
                 return;
             }
 
-            if (!data.length) {
+            if (!seriesList.length || !seriesList[0].points.length) {
                 emptyState?.classList.remove("d-none");
                 return;
             }
 
-            const values = data.map((point) => Number(point.total) || 0);
+            emptyState?.classList.add("d-none");
+
+            const values = seriesList.flatMap((series) =>
+                series.points.map((point) => Number(point.total) || 0)
+            );
             const maxValue = Math.max(...values);
 
             if (maxValue <= 0) {
@@ -705,17 +804,23 @@
             };
             const chartWidth = width - padding.left - padding.right;
             const chartHeight = height - padding.top - padding.bottom;
-            const count = values.length;
+            const count = seriesList[0].points.length;
             const step = count > 1 ? chartWidth / (count - 1) : 0;
 
-            const points = values.map((value, index) => {
-                const x = padding.left + index * step;
-                const y = padding.top + chartHeight - (value / maxValue) * chartHeight;
+            const plottedSeries = seriesList.map((series) => {
+                const points = series.points.map((point, index) => {
+                    const x = padding.left + index * step;
+                    const y = padding.top + chartHeight - (point.total / maxValue) * chartHeight;
+                    return {
+                        x,
+                        y,
+                        value: point.total,
+                        date: point.date,
+                    };
+                });
                 return {
-                    x,
-                    y,
-                    value,
-                    date: data[index].date,
+                    ...series,
+                    points,
                 };
             });
 
@@ -775,7 +880,7 @@
             )).sort((a, b) => a - b);
 
             tickIndexes.forEach((index) => {
-                const point = points[index];
+                const point = plottedSeries[0].points[index];
                 const label = document.createElementNS(ns, "text");
                 label.setAttribute("x", point.x);
                 label.setAttribute("y", height - 8);
@@ -784,40 +889,110 @@
                 axis.appendChild(label);
             });
 
-            const linePath = points
-                .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
-                .join(" ");
-
-            const areaPath = [
-                `M ${points[0].x} ${padding.top + chartHeight}`,
-                ...points.map((point) => `L ${point.x} ${point.y}`),
-                `L ${points[points.length - 1].x} ${padding.top + chartHeight}`,
-                "Z",
-            ].join(" ");
-
-            area.setAttribute("d", areaPath);
-            line.setAttribute("d", linePath);
+            seriesGroup.innerHTML = "";
+            if (hoverLine) {
+                hoverLine.style.opacity = "0";
+            }
+            if (hoverPoint) {
+                hoverPoint.style.opacity = "0";
+            }
+            if (hoverPointsGroup) {
+                hoverPointsGroup.innerHTML = "";
+            }
+            if (mode === "breakout") {
+                chart.classList.add("is-breakout");
+                area.setAttribute("d", "");
+                line.setAttribute("d", "");
+                plottedSeries.forEach((series) => {
+                    const path = document.createElementNS(ns, "path");
+                    path.setAttribute("class", "finances-line-chart__series-line");
+                    path.setAttribute("stroke", series.color);
+                    const pathDef = series.points
+                        .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+                        .join(" ");
+                    path.setAttribute("d", pathDef);
+                    seriesGroup.appendChild(path);
+                });
+                if (hoverPoint) {
+                    hoverPoint.style.display = "none";
+                }
+            } else {
+                chart.classList.remove("is-breakout");
+                if (hoverPoint) {
+                    hoverPoint.style.display = "block";
+                }
+                const totalPoints = plottedSeries[0].points;
+                const linePath = totalPoints
+                    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+                    .join(" ");
+                const areaPath = [
+                    `M ${totalPoints[0].x} ${padding.top + chartHeight}`,
+                    ...totalPoints.map((point) => `L ${point.x} ${point.y}`),
+                    `L ${totalPoints[totalPoints.length - 1].x} ${padding.top + chartHeight}`,
+                    "Z",
+                ].join(" ");
+                area.setAttribute("d", areaPath);
+                line.setAttribute("d", linePath);
+            }
 
             const showHover = (index) => {
-                if (!hoverLine || !hoverPoint || !tooltip) {
+                if (!hoverLine || !tooltip) {
                     return;
                 }
-                const point = points[index];
-                hoverLine.setAttribute("x1", point.x);
-                hoverLine.setAttribute("x2", point.x);
+                const primaryPoint = plottedSeries[0].points[index];
+                hoverLine.setAttribute("x1", primaryPoint.x);
+                hoverLine.setAttribute("x2", primaryPoint.x);
                 hoverLine.setAttribute("y1", padding.top);
                 hoverLine.setAttribute("y2", padding.top + chartHeight);
                 hoverLine.style.opacity = "1";
-                hoverPoint.setAttribute("cx", point.x);
-                hoverPoint.setAttribute("cy", point.y);
-                hoverPoint.style.opacity = "1";
+
+                if (mode === "breakout") {
+                    if (hoverPointsGroup) {
+                        hoverPointsGroup.innerHTML = "";
+                        plottedSeries.forEach((series) => {
+                            const seriesPoint = series.points[index];
+                            const circle = document.createElementNS(ns, "circle");
+                            circle.setAttribute("cx", seriesPoint.x);
+                            circle.setAttribute("cy", seriesPoint.y);
+                            circle.setAttribute("r", "3");
+                            circle.setAttribute("fill", series.color);
+                            hoverPointsGroup.appendChild(circle);
+                        });
+                    }
+                } else if (hoverPoint) {
+                    hoverPoint.setAttribute("cx", primaryPoint.x);
+                    hoverPoint.setAttribute("cy", primaryPoint.y);
+                    hoverPoint.style.opacity = "1";
+                }
 
                 const chartRect = chart.getBoundingClientRect();
                 const svgRect = svg.getBoundingClientRect();
-                const left = (point.x / width) * svgRect.width + (svgRect.left - chartRect.left);
-                const top = (point.y / height) * svgRect.height + (svgRect.top - chartRect.top);
+                const left = (primaryPoint.x / width) * svgRect.width + (svgRect.left - chartRect.left);
+                const top = (primaryPoint.y / height) * svgRect.height + (svgRect.top - chartRect.top);
 
-                tooltip.textContent = `${tooltipDateFormatter.format(new Date(point.date))} \u2022 ${numberFormatter.format(point.value)} ISK`;
+                if (mode === "breakout") {
+                    const items = plottedSeries
+                        .map((series) => {
+                            const seriesPoint = series.points[index];
+                            return {
+                                label: series.label,
+                                value: seriesPoint.value,
+                                color: series.color,
+                            };
+                        })
+                        .sort((a, b) => b.value - a.value);
+
+                    const list = items
+                        .map(
+                            (item) =>
+                                `<div class="finances-tooltip-item"><span class="finances-tooltip-dot" style="background:${item.color}"></span>${item.label}: ${numberFormatter.format(item.value)} ISK</div>`
+                        )
+                        .join("");
+
+                    tooltip.innerHTML = `<div>${tooltipDateFormatter.format(new Date(primaryPoint.date))}</div><div class="finances-tooltip-list">${list}</div>`;
+                } else {
+                    tooltip.textContent = `${tooltipDateFormatter.format(new Date(primaryPoint.date))} \u2022 ${numberFormatter.format(primaryPoint.value)} ISK`;
+                }
                 tooltip.style.left = `${left}px`;
                 tooltip.style.top = `${top}px`;
                 tooltip.classList.remove("d-none");
@@ -830,12 +1005,15 @@
                 if (hoverPoint) {
                     hoverPoint.style.opacity = "0";
                 }
+                if (hoverPointsGroup) {
+                    hoverPointsGroup.innerHTML = "";
+                }
                 if (tooltip) {
                     tooltip.classList.add("d-none");
                 }
             };
 
-            chart.addEventListener("mousemove", (event) => {
+            chart.onmousemove = (event) => {
                 const rect = svg.getBoundingClientRect();
                 const relativeX = ((event.clientX - rect.left) / rect.width) * width;
                 const clampedX = Math.max(padding.left, Math.min(width - padding.right, relativeX));
@@ -843,26 +1021,83 @@
                     ? Math.round(((clampedX - padding.left) / chartWidth) * (count - 1))
                     : 0;
                 showHover(index);
-            });
+            };
 
-            chart.addEventListener("mouseleave", hideHover);
+            chart.onmouseleave = hideHover;
         };
 
-        charts.forEach(({ dataId, selector }) => {
-            const dataElement = document.getElementById(dataId);
-            const chart = document.querySelector(selector);
-            if (!dataElement || !chart) {
+        const parseJsonScript = (elementId) => {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                return [];
+            }
+            try {
+                return JSON.parse(element.textContent || "[]");
+            } catch (err) {
+                return [];
+            }
+        };
+
+        charts.forEach((config) => {
+            const chart = document.querySelector(config.selector);
+            const toggle = document.querySelector(config.toggleSelector);
+            const legend = document.querySelector(config.legendSelector);
+            if (!chart) {
                 return;
             }
 
-            let data = [];
-            try {
-                data = JSON.parse(dataElement.textContent || "[]");
-            } catch (err) {
-                data = [];
+            const totalData = parseJsonScript(config.dataId);
+            const breakoutData = parseJsonScript(config.breakoutId);
+
+            const theme = chart.dataset.theme || "income";
+            const baseHue = theme === "expenses" ? 0 : 210;
+
+            const breakoutSeries = breakoutData.map((series, index) => ({
+                ...series,
+                color: getSeriesColor(series.key, index, baseHue),
+            }));
+
+            const totalLabel = chart.dataset.totalLabel || "Total";
+            const chartLineColor = getComputedStyle(chart).getPropertyValue("--chart-line").trim() || "#0d6efd";
+            const totalSeries = [
+                {
+                    key: "total",
+                    label: totalLabel,
+                    color: chartLineColor,
+                    points: totalData,
+                },
+            ];
+
+            let mode = "total";
+
+            const updateToggleLabel = () => {
+                if (!toggle) {
+                    return;
+                }
+                const breakoutLabel = toggle.dataset.toggleBreakout || "Break out by ref type";
+                const totalLabel = toggle.dataset.toggleTotal || "Show total";
+                toggle.textContent = mode === "total" ? breakoutLabel : totalLabel;
+            };
+
+            const render = () => {
+                if (mode === "breakout" && breakoutSeries.length) {
+                    renderLegend(legend, breakoutSeries);
+                    renderChart(chart, breakoutSeries, "breakout");
+                } else {
+                    renderLegend(legend, totalSeries);
+                    renderChart(chart, totalSeries, "total");
+                }
+                updateToggleLabel();
+            };
+
+            if (toggle) {
+                toggle.addEventListener("click", () => {
+                    mode = mode === "total" ? "breakout" : "total";
+                    render();
+                });
             }
 
-            renderChart(chart, data);
+            render();
         });
 
         const updateSelectedList = (select, list, badgeClass, emptyText) => {
