@@ -42,7 +42,7 @@
                     </div>
                     <div class="col-md-4">
                         <label for="divisions" class="form-label">{% translate "Wallet Divisions" %}</label>
-                        <select id="divisions" name="divisions" class="form-select" multiple size="6">
+                        <select id="divisions" name="divisions" class="form-select finances-select finances-select--neutral" multiple size="6">
                             {% for division in divisions %}
                                 <option value="{{ division.id }}" {% if division.id in division_ids %}selected{% endif %}>
                                     {{ division.corporation.corporation.corporation_name }} -
@@ -54,7 +54,7 @@
                     </div>
                     <div class="col-md-4">
                         <label for="ref_types" class="form-label">{% translate "Income Reference Types" %}</label>
-                        <select id="ref_types" name="ref_types" class="form-select" multiple size="6">
+                        <select id="ref_types" name="ref_types" class="form-select finances-select finances-select--income" multiple size="6">
                             {% for ref in ref_type_choices %}
                                 <option value="{{ ref.value }}" {% if ref.value in selected_ref_types %}selected{% endif %}>
                                     {{ ref.label }}
@@ -65,7 +65,7 @@
                     </div>
                     <div class="col-md-4">
                         <label for="expense_ref_types" class="form-label">{% translate "Expense Reference Types" %}</label>
-                        <select id="expense_ref_types" name="expense_ref_types" class="form-select" multiple size="6">
+                        <select id="expense_ref_types" name="expense_ref_types" class="form-select finances-select finances-select--expense" multiple size="6">
                             {% for ref in expense_ref_type_choices %}
                                 <option value="{{ ref.value }}" {% if ref.value in selected_expense_ref_types %}selected{% endif %}>
                                     {{ ref.label }}
@@ -358,6 +358,22 @@
             text-align: center;
             vertical-align: middle;
         }
+        .finances-select {
+            background-color: var(--bs-body-bg);
+        }
+        .finances-select option {
+            color: var(--bs-body-color);
+        }
+        .finances-select option:checked {
+            background-color: var(--bs-secondary-bg-subtle);
+            color: var(--bs-body-color);
+        }
+        .finances-select--income option:checked {
+            background-color: var(--bs-primary-bg-subtle);
+        }
+        .finances-select--expense option:checked {
+            background-color: var(--bs-danger-bg-subtle);
+        }
         .finances-legend {
             display: flex;
             flex-wrap: wrap;
@@ -537,7 +553,7 @@
             axis.classList.add("finances-line-chart__axis");
 
             const ns = "http://www.w3.org/2000/svg";
-            const tickCount = 8;
+            const tickCount = 10;
             for (let i = 0; i <= tickCount; i += 1) {
                 const y = padding.top + (chartHeight / tickCount) * i;
                 const value = Math.round(maxValue * (1 - i / tickCount));
@@ -580,7 +596,7 @@
                 year: "numeric",
             });
 
-            const xTickCount = 5;
+            const xTickCount = 15;
             const tickIndexes = Array.from(new Set(
                 Array.from({ length: xTickCount + 1 }, (_, idx) =>
                     Math.round((count - 1) * (idx / xTickCount))
