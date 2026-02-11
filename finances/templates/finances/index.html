@@ -18,6 +18,27 @@
                                 </option>
                             {% endfor %}
                         </select>
+                        <div class="form-text">{% translate "Custom range overrides this selection." %}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="start_date" class="form-label">{% translate "Start Date" %}</label>
+                        <input
+                            id="start_date"
+                            name="start_date"
+                            type="date"
+                            class="form-control"
+                            value="{{ custom_start_value }}"
+                        >
+                    </div>
+                    <div class="col-md-3">
+                        <label for="end_date" class="form-label">{% translate "End Date" %}</label>
+                        <input
+                            id="end_date"
+                            name="end_date"
+                            type="date"
+                            class="form-control"
+                            value="{{ custom_end_value }}"
+                        >
                     </div>
                     <div class="col-md-4">
                         <label for="divisions" class="form-label">{% translate "Wallet Divisions" %}</label>
@@ -109,6 +130,18 @@
                 <div class="card h-100">
                     <div class="card-header">{% translate "Income by Reference Type" %}</div>
                     <div class="card-body p-0">
+                        <div class="p-3">
+                            <div class="finances-line-chart" data-chart="income">
+                                <svg viewBox="0 0 600 200" preserveAspectRatio="none" role="img" aria-label="{% translate "Income trend" %}">
+                                    <path class="finances-line-chart__area" d=""></path>
+                                    <path class="finances-line-chart__line" d=""></path>
+                                </svg>
+                                <div class="finances-line-chart__empty text-muted d-none">
+                                    {% translate "No income data for this period." %}
+                                </div>
+                            </div>
+                            {{ income_series|json_script:"income-series-data" }}
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-sm mb-0">
                                 <thead>
@@ -217,7 +250,106 @@
 {% endblock %}
 
 {% block extra_css %}
+    <style>
+        .finances-line-chart {
+            position: relative;
+            width: 100%;
+            height: 180px;
+            background: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+        }
+        .finances-line-chart svg {
+            width: 100%;
+            height: 100%;
+        }
+        .finances-line-chart__line {
+            fill: none;
+            stroke: var(--bs-primary);
+            stroke-width: 2;
+        }
+        .finances-line-chart__area {
+            fill: var(--bs-primary-bg-subtle);
+            opacity: 0.5;
+        }
+        .finances-line-chart__empty {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1rem;
+            background: var(--bs-body-bg);
+        }
+    </style>
 {% endblock %}
 
 {% block extra_script %}
+    (function () {
+        const dataElement = document.getElementById("income-series-data");
+        const chart = document.querySelector('[data-chart="income"]');
+        if (!dataElement || !chart) {
+            return;
+        }
+
+        let data = [];
+        try {
+            data = JSON.parse(dataElement.textContent || "[]");
+        } catch (err) {
+            data = [];
+        }
+
+        const emptyState = chart.querySelector(".finances-line-chart__empty");
+        const svg = chart.querySelector("svg");
+        const area = chart.querySelector(".finances-line-chart__area");
+        const line = chart.querySelector(".finances-line-chart__line");
+
+        if (!svg || !area || !line) {
+            return;
+        }
+
+        if (!data.length) {
+            emptyState?.classList.remove("d-none");
+            return;
+        }
+
+        const values = data.map((point) => Number(point.total) || 0);
+        const maxValue = Math.max(...values);
+
+        if (maxValue <= 0) {
+            emptyState?.classList.remove("d-none");
+            return;
+        }
+
+        const width = 600;
+        const height = 200;
+        const padding = 20;
+        const baseline = height - padding;
+        const top = padding;
+        const usableHeight = baseline - top;
+        const count = values.length;
+        const step = count > 1 ? (width - padding * 2) / (count - 1) : 0;
+
+        const points = values.map((value, index) => {
+            const x = padding + index * step;
+            const y = baseline - (value / maxValue) * usableHeight;
+            return [x, y];
+        });
+
+        const linePath = points
+            .map((point, index) => `${index === 0 ? "M" : "L"} ${point[0]} ${point[1]}`)
+            .join(" ");
+
+        const areaPath = [
+            `M ${points[0][0]} ${baseline}`,
+            ...points.map((point, index) => `${index === 0 ? "L" : "L"} ${point[0]} ${point[1]}`),
+            `L ${points[points.length - 1][0]} ${baseline}`,
+            "Z",
+        ].join(" ");
+
+        area.setAttribute("d", areaPath);
+        line.setAttribute("d", linePath);
+    })();
 {% endblock %}

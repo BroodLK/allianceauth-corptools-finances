@@ -1,14 +1,14 @@
 """App Views"""
 
 # Standard Library
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 # Django
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q, Sum
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, TruncDate
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -46,6 +46,13 @@ def _format_ref_type(ref_type: str) -> str:
     return ref_type.replace("_", " ").title()
 
 
+def _parse_date(value):
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+
+
 @login_required
 def dashboard(request) -> HttpResponse:
     if not _user_can_view_wallets(request.user):
@@ -60,7 +67,23 @@ def dashboard(request) -> HttpResponse:
     if days not in days_options:
         days = 30
 
-    start_date = timezone.now() - timedelta(days=days)
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+    custom_start = _parse_date(request.GET.get("start_date"))
+    custom_end = _parse_date(request.GET.get("end_date"))
+    if custom_start or custom_end:
+        if not custom_start:
+            custom_start = custom_end
+        if not custom_end:
+            custom_end = custom_start
+        if custom_start > custom_end:
+            custom_start, custom_end = custom_end, custom_start
+        tz = timezone.get_current_timezone()
+        start_date = timezone.make_aware(datetime.combine(custom_start, time.min), tz)
+        end_date = timezone.make_aware(datetime.combine(custom_end, time.max), tz)
+        now = timezone.now()
+        if end_date > now:
+            end_date = now
 
     all_divisions = (
         CorporationWalletDivision.get_visible(request.user)
@@ -81,6 +104,7 @@ def dashboard(request) -> HttpResponse:
 
     entries = CorporationWalletJournalEntry.get_visible(request.user).filter(
         date__gte=start_date,
+        date__lte=end_date,
         division_id__in=division_ids,
     )
 
@@ -131,6 +155,24 @@ def dashboard(request) -> HttpResponse:
         row["label"] = _format_ref_type(row["ref_type"])
         row["total_abs"] = abs(row["total"])
 
+    income_series = list(
+        income_entries.annotate(day=TruncDate("date"))
+        .values("day")
+        .annotate(total=Coalesce(Sum("amount"), Decimal("0.00")))
+        .order_by("day")
+    )
+    income_totals_by_day = {row["day"]: row["total"] for row in income_series}
+    days_count = (end_date.date() - start_date.date()).days
+    income_series_points = []
+    for offset in range(days_count + 1):
+        day = start_date.date() + timedelta(days=offset)
+        income_series_points.append(
+            {
+                "date": day.isoformat(),
+                "total": float(income_totals_by_day.get(day, Decimal("0.00"))),
+            }
+        )
+
     division_totals = {
         row["division_id"]: row
         for row in entries.values(
@@ -171,7 +213,9 @@ def dashboard(request) -> HttpResponse:
         "days": days,
         "days_options": days_options,
         "start_date": start_date,
-        "end_date": timezone.now(),
+        "end_date": end_date,
+        "custom_start_value": custom_start.isoformat() if custom_start else "",
+        "custom_end_value": custom_end.isoformat() if custom_end else "",
         "division_rows": division_rows,
         "division_ids": set(division_ids),
         "divisions": all_divisions,
@@ -188,6 +232,7 @@ def dashboard(request) -> HttpResponse:
         },
         "income_by_ref": income_by_ref,
         "expense_by_ref": expense_by_ref,
+        "income_series": income_series_points,
     }
 
     return render(request, "finances/index.html", context)
