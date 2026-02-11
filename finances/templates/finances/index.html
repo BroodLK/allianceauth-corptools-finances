@@ -399,82 +399,101 @@
         </div>
 
         {% if drilldown %}
-            <div class="card mt-3" id="drilldown">
-                <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div>
-                        {% translate "Drilldown" %}: {{ drilldown.title }}
-                        <span class="text-muted small">({{ drilldown.count }} {% translate "entries" %})</span>
-                    </div>
-                    {% if drilldown.clear_query %}
-                        <a class="btn btn-sm btn-outline-secondary" href="?{{ drilldown.clear_query }}">
-                            {% translate "Clear drilldown" %}
-                        </a>
-                    {% else %}
-                        <a class="btn btn-sm btn-outline-secondary" href="?">
-                            {% translate "Clear drilldown" %}
-                        </a>
-                    {% endif %}
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped mb-0">
-                            <thead>
-                                <tr>
-                                    <th>{% translate "Date" %}</th>
-                                    <th>{% translate "Entry ID" %}</th>
-                                    <th>{% translate "Corporation" %}</th>
-                                    <th>{% translate "Division" %}</th>
-                                    <th>{% translate "Ref Type" %}</th>
-                                    <th>{% translate "Amount" %}</th>
-                                    <th>{% translate "Balance" %}</th>
-                                    <th>{% translate "First Party" %}</th>
-                                    <th>{% translate "Second Party" %}</th>
-                                    <th>{% translate "Context Type" %}</th>
-                                    <th>{% translate "Context ID" %}</th>
-                                    <th>{% translate "Description" %}</th>
-                                    <th>{% translate "Reason" %}</th>
-                                    <th>{% translate "Tax" %}</th>
-                                    <th>{% translate "Tax Receiver" %}</th>
-                                    <th>{% translate "Processed" %}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in drilldown.rows %}
-                                    <tr>
-                                        <td>{{ row.date|date:"Y-m-d H:i" }}</td>
-                                        <td>{{ row.entry_id }}</td>
-                                        <td>{{ row.corp_name }}</td>
-                                        <td>{{ row.division }}{% if row.division_name %} {{ row.division_name }}{% endif %}</td>
-                                        <td>{{ row.ref_type }}</td>
-                                        <td>{{ row.amount|floatformat:2|intcomma }}</td>
-                                        <td>{{ row.balance|floatformat:2|intcomma }}</td>
-                                        <td>
-                                            {{ row.first_party_name }}
-                                            {% if row.first_party_id %} ({{ row.first_party_id }}){% endif %}
-                                            {% if row.first_party_category %} - {{ row.first_party_category }}{% endif %}
-                                        </td>
-                                        <td>
-                                            {{ row.second_party_name }}
-                                            {% if row.second_party_id %} ({{ row.second_party_id }}){% endif %}
-                                            {% if row.second_party_category %} - {{ row.second_party_category }}{% endif %}
-                                        </td>
-                                        <td>{{ row.context_id_type }}</td>
-                                        <td>{{ row.context_id }}</td>
-                                        <td>{{ row.description }}</td>
-                                        <td>{{ row.reason }}</td>
-                                        <td>{{ row.tax|floatformat:2|intcomma }}</td>
-                                        <td>{{ row.tax_receiver_id }}</td>
-                                        <td>{{ row.processed }}</td>
-                                    </tr>
-                                {% empty %}
-                                    <tr>
-                                        <td colspan="16" class="text-center text-muted">
-                                            {% translate "No matching transactions." %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+            <div class="modal fade" id="drilldownModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div>
+                                <h5 class="modal-title">
+                                    {% translate "Drilldown" %}: {{ drilldown.title }}
+                                </h5>
+                                <div class="text-muted small">
+                                    {{ drilldown.count }} {% translate "entries" %}
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate "Close" %}"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>{% translate "Date" %}</th>
+                                            <th>{% translate "Entry ID" %}</th>
+                                            <th>{% translate "Corporation" %}</th>
+                                            <th>{% translate "Division" %}</th>
+                                            <th>{% translate "Ref Type" %}</th>
+                                            <th>{% translate "Amount" %}</th>
+                                            <th>{% translate "Balance" %}</th>
+                                            <th>{% translate "First Party" %}</th>
+                                            <th>{% translate "Second Party" %}</th>
+                                            <th>{% translate "Context Type" %}</th>
+                                            <th>{% translate "Context ID" %}</th>
+                                            <th>{% translate "Description" %}</th>
+                                            <th>{% translate "Reason" %}</th>
+                                            <th>{% translate "Tax" %}</th>
+                                            <th>{% translate "Tax Receiver" %}</th>
+                                            <th>{% translate "Processed" %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in drilldown.rows %}
+                                            <tr>
+                                                <td>{{ row.date|date:"Y-m-d H:i" }}</td>
+                                                <td>{{ row.entry_id }}</td>
+                                                <td>{{ row.corp_name }}</td>
+                                                <td>{{ row.division }}{% if row.division_name %} {{ row.division_name }}{% endif %}</td>
+                                                <td>{{ row.ref_type }}</td>
+                                                <td>{{ row.amount|floatformat:2|intcomma }}</td>
+                                                <td>{{ row.balance|floatformat:2|intcomma }}</td>
+                                                <td>
+                                                    {{ row.first_party_name }}
+                                                    {% if row.first_party_id %} ({{ row.first_party_id }}){% endif %}
+                                                    {% if row.first_party_category %} - {{ row.first_party_category }}{% endif %}
+                                                </td>
+                                                <td>
+                                                    {{ row.second_party_name }}
+                                                    {% if row.second_party_id %} ({{ row.second_party_id }}){% endif %}
+                                                    {% if row.second_party_category %} - {{ row.second_party_category }}{% endif %}
+                                                </td>
+                                                <td>{{ row.context_id_type }}</td>
+                                                <td>{{ row.context_id }}</td>
+                                                <td>{{ row.description }}</td>
+                                                <td>{{ row.reason }}</td>
+                                                <td>{{ row.tax|floatformat:2|intcomma }}</td>
+                                                <td>{{ row.tax_receiver_id }}</td>
+                                                <td>{{ row.processed }}</td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr>
+                                                <td colspan="16" class="text-center text-muted">
+                                                    {% translate "No matching transactions." %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            {% if drilldown.export_query %}
+                                <a class="btn btn-outline-primary" href="?{{ drilldown.export_query }}" target="_blank" rel="noopener">
+                                    {% translate "Export CSV" %}
+                                </a>
+                            {% endif %}
+                            {% if drilldown.clear_query %}
+                                <a class="btn btn-outline-secondary" href="?{{ drilldown.clear_query }}">
+                                    {% translate "Clear drilldown" %}
+                                </a>
+                            {% else %}
+                                <a class="btn btn-outline-secondary" href="?">
+                                    {% translate "Clear drilldown" %}
+                                </a>
+                            {% endif %}
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                {% translate "Close" %}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -901,7 +920,7 @@
                     params.delete("ref_type");
                 }
                 const query = params.toString();
-                const url = `${window.location.pathname}?${query}#drilldown`;
+                const url = `${window.location.pathname}?${query}#drilldownModal`;
                 window.location.assign(url);
             };
 
@@ -916,5 +935,11 @@
             row.setAttribute("role", "button");
             row.setAttribute("title", "View transactions");
         });
+
+        const drilldownModal = document.getElementById("drilldownModal");
+        if (drilldownModal && window.bootstrap && window.bootstrap.Modal) {
+            const modal = new window.bootstrap.Modal(drilldownModal);
+            modal.show();
+        }
     })();
 {% endblock %}

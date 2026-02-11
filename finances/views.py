@@ -1,6 +1,7 @@
 """App Views"""
 
 # Standard Library
+import csv
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
@@ -12,7 +13,6 @@ from django.db.models.functions import Coalesce, TruncDate
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
-from django.utils.http import urlencode
 
 # Corptools
 from corptools.models import (
@@ -59,6 +59,69 @@ def _clean_query_params(request, remove_keys):
     for key in remove_keys:
         params.pop(key, None)
     return params.urlencode()
+
+
+def _export_drilldown_csv(drill_qs, drill_title):
+    response = HttpResponse(content_type="text/csv")
+    filename = "finances_drilldown.csv"
+    if drill_title:
+        safe_title = drill_title.lower().replace(" ", "_").replace(":", "")
+        filename = f"finances_{safe_title}.csv"
+    response["Content-Disposition"] = f"attachment; filename={filename}"
+    writer = csv.writer(response)
+
+    writer.writerow(
+        [
+            "Date",
+            "Entry ID",
+            "Corporation",
+            "Division",
+            "Ref Type",
+            "Amount",
+            "Balance",
+            "First Party",
+            "First Party ID",
+            "First Party Category",
+            "Second Party",
+            "Second Party ID",
+            "Second Party Category",
+            "Context Type",
+            "Context ID",
+            "Description",
+            "Reason",
+            "Tax",
+            "Tax Receiver",
+            "Processed",
+        ]
+    )
+
+    for entry in drill_qs:
+        writer.writerow(
+            [
+                entry.date.isoformat(),
+                entry.entry_id,
+                entry.division.corporation.corporation.corporation_name,
+                f"{entry.division.division} {entry.division.name or ''}".strip(),
+                entry.ref_type,
+                entry.amount,
+                entry.balance,
+                getattr(entry.first_party_name, "name", ""),
+                entry.first_party_id,
+                getattr(entry.first_party_name, "category", ""),
+                getattr(entry.second_party_name, "name", ""),
+                entry.second_party_id,
+                getattr(entry.second_party_name, "category", ""),
+                entry.context_id_type,
+                entry.context_id,
+                entry.description,
+                entry.reason,
+                entry.tax,
+                entry.tax_receiver_id,
+                entry.processed,
+            ]
+        )
+
+    return response
 
 
 def _series_stats(values, start_day):
@@ -340,6 +403,9 @@ def dashboard(request) -> HttpResponse:
             else:
                 drill_qs = drill_qs.none()
 
+        if request.GET.get("export") == "csv":
+            return _export_drilldown_csv(drill_qs, drill_title)
+
         drill_rows = []
         for entry in drill_qs:
             drill_rows.append(
@@ -374,14 +440,19 @@ def dashboard(request) -> HttpResponse:
                 "drill",
                 "ref_type",
                 "division_id",
+                "export",
             ],
         )
+
+        export_params = request.GET.copy()
+        export_params["export"] = "csv"
 
         drilldown = {
             "title": drill_title,
             "rows": drill_rows,
             "count": len(drill_rows),
             "clear_query": clear_query,
+            "export_query": export_params.urlencode(),
         }
 
     context = {
