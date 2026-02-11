@@ -252,7 +252,7 @@
                                 </thead>
                                 <tbody>
                                     {% for row in income_by_ref %}
-                                        <tr>
+                                        <tr class="finances-drill-row" data-drill="income_ref" data-ref-type="{{ row.ref_type }}">
                                             <td>{{ row.label }}</td>
                                             <td>{{ row.total|floatformat:0|intcomma }}</td>
                                             <td>{{ row.count }}</td>
@@ -336,7 +336,7 @@
                                 </thead>
                                 <tbody>
                                     {% for row in expense_by_ref %}
-                                        <tr>
+                                        <tr class="finances-drill-row" data-drill="expense_ref" data-ref-type="{{ row.ref_type }}">
                                             <td>{{ row.label }}</td>
                                             <td>{{ row.total_abs|floatformat:0|intcomma }}</td>
                                             <td>{{ row.count }}</td>
@@ -373,7 +373,7 @@
                         </thead>
                         <tbody>
                             {% for row in division_rows %}
-                                <tr>
+                                <tr class="finances-drill-row" data-drill="division" data-division-id="{{ row.division_id }}">
                                     <td>{{ row.corp_name }}</td>
                                     <td>{{ row.division }}{% if row.name %} {{ row.name }}{% endif %}</td>
                                     <td>{{ row.balance|floatformat:0|intcomma }}</td>
@@ -397,6 +397,88 @@
                 </div>
             </div>
         </div>
+
+        {% if drilldown %}
+            <div class="card mt-3" id="drilldown">
+                <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        {% translate "Drilldown" %}: {{ drilldown.title }}
+                        <span class="text-muted small">({{ drilldown.count }} {% translate "entries" %})</span>
+                    </div>
+                    {% if drilldown.clear_query %}
+                        <a class="btn btn-sm btn-outline-secondary" href="?{{ drilldown.clear_query }}">
+                            {% translate "Clear drilldown" %}
+                        </a>
+                    {% else %}
+                        <a class="btn btn-sm btn-outline-secondary" href="?">
+                            {% translate "Clear drilldown" %}
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>{% translate "Date" %}</th>
+                                    <th>{% translate "Entry ID" %}</th>
+                                    <th>{% translate "Corporation" %}</th>
+                                    <th>{% translate "Division" %}</th>
+                                    <th>{% translate "Ref Type" %}</th>
+                                    <th>{% translate "Amount" %}</th>
+                                    <th>{% translate "Balance" %}</th>
+                                    <th>{% translate "First Party" %}</th>
+                                    <th>{% translate "Second Party" %}</th>
+                                    <th>{% translate "Context Type" %}</th>
+                                    <th>{% translate "Context ID" %}</th>
+                                    <th>{% translate "Description" %}</th>
+                                    <th>{% translate "Reason" %}</th>
+                                    <th>{% translate "Tax" %}</th>
+                                    <th>{% translate "Tax Receiver" %}</th>
+                                    <th>{% translate "Processed" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in drilldown.rows %}
+                                    <tr>
+                                        <td>{{ row.date|date:"Y-m-d H:i" }}</td>
+                                        <td>{{ row.entry_id }}</td>
+                                        <td>{{ row.corp_name }}</td>
+                                        <td>{{ row.division }}{% if row.division_name %} {{ row.division_name }}{% endif %}</td>
+                                        <td>{{ row.ref_type }}</td>
+                                        <td>{{ row.amount|floatformat:2|intcomma }}</td>
+                                        <td>{{ row.balance|floatformat:2|intcomma }}</td>
+                                        <td>
+                                            {{ row.first_party_name }}
+                                            {% if row.first_party_id %} ({{ row.first_party_id }}){% endif %}
+                                            {% if row.first_party_category %} - {{ row.first_party_category }}{% endif %}
+                                        </td>
+                                        <td>
+                                            {{ row.second_party_name }}
+                                            {% if row.second_party_id %} ({{ row.second_party_id }}){% endif %}
+                                            {% if row.second_party_category %} - {{ row.second_party_category }}{% endif %}
+                                        </td>
+                                        <td>{{ row.context_id_type }}</td>
+                                        <td>{{ row.context_id }}</td>
+                                        <td>{{ row.description }}</td>
+                                        <td>{{ row.reason }}</td>
+                                        <td>{{ row.tax|floatformat:2|intcomma }}</td>
+                                        <td>{{ row.tax_receiver_id }}</td>
+                                        <td>{{ row.processed }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="16" class="text-center text-muted">
+                                            {% translate "No matching transactions." %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
     </div>
 {% endblock %}
 
@@ -437,6 +519,12 @@
         .finances-selected__empty {
             font-size: 0.75rem;
             color: var(--bs-secondary-color);
+        }
+        .finances-drill-row {
+            cursor: pointer;
+        }
+        .finances-drill-row:hover {
+            background-color: var(--bs-secondary-bg-subtle);
         }
         .finances-legend {
             display: flex;
@@ -788,6 +876,45 @@
             const render = () => updateSelectedList(select, list, badgeClass, emptyText);
             render();
             select.addEventListener("change", render);
+        });
+
+        document.querySelectorAll(".finances-drill-row[data-drill]").forEach((row) => {
+            const handleDrill = () => {
+                const drillType = row.getAttribute("data-drill");
+                const refType = row.getAttribute("data-ref-type");
+                const divisionId = row.getAttribute("data-division-id");
+                if (!drillType) {
+                    return;
+                }
+
+                const params = new URLSearchParams(window.location.search);
+                params.set("drill", drillType);
+                if (drillType === "income_ref" || drillType === "expense_ref") {
+                    if (refType) {
+                        params.set("ref_type", refType);
+                    }
+                    params.delete("division_id");
+                } else if (drillType === "division") {
+                    if (divisionId) {
+                        params.set("division_id", divisionId);
+                    }
+                    params.delete("ref_type");
+                }
+                const query = params.toString();
+                const url = `${window.location.pathname}?${query}#drilldown`;
+                window.location.assign(url);
+            };
+
+            row.addEventListener("click", handleDrill);
+            row.addEventListener("keypress", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleDrill();
+                }
+            });
+            row.setAttribute("tabindex", "0");
+            row.setAttribute("role", "button");
+            row.setAttribute("title", "View transactions");
         });
     })();
 {% endblock %}

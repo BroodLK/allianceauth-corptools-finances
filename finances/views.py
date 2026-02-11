@@ -12,6 +12,7 @@ from django.db.models.functions import Coalesce, TruncDate
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.http import urlencode
 
 # Corptools
 from corptools.models import (
@@ -51,6 +52,13 @@ def _parse_date(value):
         return date.fromisoformat(value)
     except (TypeError, ValueError):
         return None
+
+
+def _clean_query_params(request, remove_keys):
+    params = request.GET.copy()
+    for key in remove_keys:
+        params.pop(key, None)
+    return params.urlencode()
 
 
 def _series_stats(values, start_day):
@@ -275,8 +283,106 @@ def dashboard(request) -> HttpResponse:
                 "income": income,
                 "expenses": expenses,
                 "net": income + expenses,
+                "division_id": division.id,
             }
         )
+
+    drilldown = None
+    drill_type = request.GET.get("drill")
+    if drill_type:
+        drill_qs = (
+            entries.select_related(
+                "division",
+                "division__corporation__corporation",
+                "first_party_name",
+                "second_party_name",
+            )
+            .order_by("-date")
+        )
+        drill_title = ""
+
+        if drill_type == "income_ref":
+            ref_type = request.GET.get("ref_type", "")
+            if ref_type in selected_ref_types:
+                drill_qs = drill_qs.filter(amount__gt=0, ref_type=ref_type)
+                drill_title = f"Income: {_format_ref_type(ref_type)}"
+            else:
+                drill_qs = drill_qs.none()
+        elif drill_type == "expense_ref":
+            ref_type = request.GET.get("ref_type", "")
+            if ref_type in selected_expense_ref_types:
+                drill_qs = drill_qs.filter(amount__lt=0, ref_type=ref_type)
+                drill_title = f"Expenses: {_format_ref_type(ref_type)}"
+            else:
+                drill_qs = drill_qs.none()
+        elif drill_type == "division":
+            try:
+                division_id = int(request.GET.get("division_id", ""))
+            except (TypeError, ValueError):
+                division_id = None
+
+            if division_id and division_id in division_ids:
+                drill_qs = drill_qs.filter(division_id=division_id).filter(
+                    Q(amount__gt=0, ref_type__in=selected_ref_types)
+                    | Q(amount__lt=0, ref_type__in=selected_expense_ref_types)
+                )
+                division_match = next(
+                    (row for row in division_rows if row["division_id"] == division_id),
+                    None,
+                )
+                if division_match:
+                    division_label = f"{division_match['corp_name']} - {division_match['division']}"
+                    if division_match["name"]:
+                        division_label = f"{division_label} {division_match['name']}"
+                    drill_title = f"Division: {division_label}"
+                else:
+                    drill_title = "Division"
+            else:
+                drill_qs = drill_qs.none()
+
+        drill_rows = []
+        for entry in drill_qs:
+            drill_rows.append(
+                {
+                    "date": entry.date,
+                    "entry_id": entry.entry_id,
+                    "division": entry.division.division,
+                    "division_name": entry.division.name or "",
+                    "corp_name": entry.division.corporation.corporation.corporation_name,
+                    "ref_type": entry.ref_type,
+                    "amount": entry.amount,
+                    "balance": entry.balance,
+                    "first_party_id": entry.first_party_id,
+                    "first_party_name": getattr(entry.first_party_name, "name", ""),
+                    "first_party_category": getattr(entry.first_party_name, "category", ""),
+                    "second_party_id": entry.second_party_id,
+                    "second_party_name": getattr(entry.second_party_name, "name", ""),
+                    "second_party_category": getattr(entry.second_party_name, "category", ""),
+                    "context_id": entry.context_id,
+                    "context_id_type": entry.context_id_type,
+                    "description": entry.description,
+                    "reason": entry.reason,
+                    "tax": entry.tax,
+                    "tax_receiver_id": entry.tax_receiver_id,
+                    "processed": entry.processed,
+                }
+            )
+
+        clear_query = _clean_query_params(
+            request,
+            [
+                "drill",
+                "ref_type",
+                "division_id",
+            ],
+        )
+
+        drilldown = {
+            "title": drill_title,
+            "rows": drill_rows,
+            "count": len(drill_rows),
+            "clear_query": clear_query,
+        }
 
     context = {
         "days": days,
@@ -307,6 +413,7 @@ def dashboard(request) -> HttpResponse:
         "expense_series": expense_series_points,
         "income_stats": income_stats,
         "expense_stats": expense_stats,
+        "drilldown": drilldown,
     }
 
     return render(request, "finances/index.html", context)
