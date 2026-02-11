@@ -5,12 +5,12 @@ requires = [
 ]
 
 [project]
-name = "aa-example-plugin"
-description = "Example Plugin for Alliance Auth (GitHub Version)"
+name = "allianceauth-corptools-finances"
+description = "allianceauth-corptools-finances Plugin for Alliance Auth (GitHub Version)"
 readme = "README.md"
 keywords = [
     "allianceauth",
-    "example",
+    "allianceauth-corptools-finances",
 ]
 license = { file = "LICENSE" }
 authors = [
@@ -38,13 +38,14 @@ dynamic = [
 ]
 dependencies = [
     "allianceauth>=4.3.1,<5",
+    "allianceauth-corptools>=3.0.0b3,<4",
 ]
-urls.Changelog = "https://github.com/ppfeufer/aa-example-plugin/blob/master/CHANGELOG.md"
-urls.Tracker = "https://github.com/ppfeufer/aa-example-plugin/issues"
+urls.Changelog = "https://github.com/ppfeufer/allianceauth-corptools-finances/blob/master/CHANGELOG.md"
+urls.Tracker = "https://github.com/ppfeufer/allianceauth-corptools-finances/issues"
 
 [tool.hatch.build]
 include = [
-    "/example",
+    "/finances",
 ]
 [tool.hatch.version]
-path = "example/__init__.py"
+path = "finances/__init__.py"

@@ -1,5 +1,5 @@
-appname = example
-package = example
+appname = allianceauth-corptools-finances
+package = finances
 
 # Default goal
 .DEFAULT_GOAL := help

@@ -1,6 +1,6 @@
 [run]
 branch = True
-source = example
+source = finances
 
 [report]
 exclude_lines =

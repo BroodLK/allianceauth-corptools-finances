@@ -10,7 +10,7 @@ Test settings
 
 from .base import *
 
-PACKAGE = "example"
+PACKAGE = "finances"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
@@ -84,7 +84,7 @@ APPS_WITH_PUBLIC_VIEWS = []
 # & API Access and fill out these settings.
 # Be sure to set the callback URL
 # to https://example.com/sso/callback
-# substituting your domain for example.com
+# substituting your domain for finances.com
 # Logging in to auth requires the publicData
 # scope (can be overridden through the
 # LOGIN_TOKEN_SCOPES setting).
@@ -92,7 +92,7 @@ APPS_WITH_PUBLIC_VIEWS = []
 ESI_SSO_CLIENT_ID = "dummy"
 ESI_SSO_CLIENT_SECRET = "dummy"
 ESI_SSO_CALLBACK_URL = "http://localhost:8000"
-ESI_USER_CONTACT_EMAIL = "dummy@example.net"
+ESI_USER_CONTACT_EMAIL = "dummy@finances.net"
 
 
 # ------------------------------------------------------------------------------------ #
@@ -105,7 +105,7 @@ ESI_USER_CONTACT_EMAIL = "dummy@example.net"
 # or Elastic Email to send email.
 # Https://www.sparkpost.com/docs/integrations/django/
 # https://elasticemail.com/resources/settings/smtp-api/
-# Set the default from email to something like 'noreply@example.com'
+# Set the default from email to something like 'noreply@finances.com'
 # Email validation can be turned off by uncommenting the line below.
 # This can break some services.
 REGISTRATION_VERIFY_EMAIL = False

@@ -3,15 +3,19 @@
 {% load i18n %}
 
 {% block page_title %}
-    {% translate "Example Plugin" %}
+    {% translate "Corp Finances" %}
 {% endblock %}
 
 {% block header_nav_brand %}
-    {% translate "Example Plugin" %}
+    {% translate "Corp Finances" %}
 {% endblock header_nav_brand %}
 
+{% block header_nav_collapse_left %}
+    {% include 'corptools/top_menu.html' %}
+{% endblock %}
+
 {% block content %}
-    <div class="allianceauth-example-plugin">
+    <div class="allianceauth-corptools-finances">
         {% block details %}{% endblock %}
     </div>
 {% endblock %}

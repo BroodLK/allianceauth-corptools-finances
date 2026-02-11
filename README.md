@@ -1,6 +1,6 @@
-# Example Plugin App for Alliance Auth (GitHub Version)<a name="example-plugin-app-for-alliance-auth-github-version"></a>
+# allianceauth-corptools-finances Plugin for Alliance Auth (GitHub Version)<a name="allianceauth-corptools-finances-plugin-for-alliance-auth-github-version"></a>
 
-This is an example plugin app for [Alliance Auth](https://gitlab.com/allianceauth/allianceauth)
+This is the allianceauth-corptools-finances plugin app for [Alliance Auth](https://gitlab.com/allianceauth/allianceauth)
 (AA) that can be used as a starting point to develop custom plugins.
 
 ![License](https://img.shields.io/badge/license-GPLv3-green)
@@ -10,14 +10,14 @@ This is an example plugin app for [Alliance Auth](https://gitlab.com/allianceaut
 
 _(These badges are examples, you can and should replace them with your own)_
 
-For the GitLab version of this example app, please have a look over here, Erik
+For the GitLab version of this app, please have a look over here, Erik
 Kalkoken was so friendly to provide it » [Alliance Auth Example App (GitLab Version)](https://gitlab.com/ErikKalkoken/allianceauth-example-plugin)
 
 ______________________________________________________________________
 
 <!-- mdformat-toc start --slug=github --maxlevel=6 --minlevel=1 -->
 
-- [Example Plugin App for Alliance Auth (GitHub Version)](#example-plugin-app-for-alliance-auth-github-version)
+- [allianceauth-corptools-finances Plugin for Alliance Auth (GitHub Version)](#allianceauth-corptools-finances-plugin-for-alliance-auth-github-version)
   - [Features](#features)
   - [How to Use It](#how-to-use-it)
     - [Cloning From Repo](#cloning-from-repo)
@@ -41,7 +41,7 @@ ______________________________________________________________________
 
 ## How to Use It<a name="how-to-use-it"></a>
 
-To use this example as a basis for your own development, just fork this repo and then
+To use allianceauth-corptools-finances as a basis for your own development, just fork this repo and then
 clone it on your dev machine.
 
 You then should rename the app, and then you can install it into your AA dev
@@ -58,7 +58,7 @@ This should look something like this:
 aa-dev
 |- venv/
 |- myauth/
-|- aa-example-plugin
+|- allianceauth-corptools-finances
 |- (other AA projects ...)
 ```
 
@@ -69,8 +69,8 @@ Finally, enable [pre-commit](https://pre-commit.com) to enable automatic code st
 checking.
 
 ```bash
-git clone https://github.com/YourName/aa-example-plugin.git aa-your-app-name
-cd aa-your-app-name
+git clone https://github.com/YourName/allianceauth-corptools-finances.git allianceauth-corptools-finances
+cd allianceauth-corptools-finances
 rm -rf .git
 git init
 pre-commit install
@@ -80,11 +80,11 @@ pre-commit install
 
 Before installing this app into your dev AA you need to rename it to something
 suitable for your development project. Otherwise, you risk not being able to install
-additional apps that might also be called example.
+additional apps that might also be called allianceauth-corptools-finances.
 
 Here is an overview of the places that you need to edit to adopt the name.
 
-Easiest is to just find & replace `example` with your new app name in all files
+Easiest is to just find & replace `allianceauth-corptools-finances` with your new app name in all files
 listed below.
 
 One small warning about picking names: Python is a bit particular about what special
@@ -94,19 +94,19 @@ unless you know exactly what you're doing.
 
 | Location                                 | Description                                                                            |
 | ---------------------------------------- | -------------------------------------------------------------------------------------- |
-| `./example/`                             | Folder name                                                                            |
-| `./example/static/example/`              | Folder name                                                                            |
-| `./example/templates/example/`           | Folder name                                                                            |
-| `./pyproject.cfg`                        | Update module name for version import, update package name, update title, author, etc. |
-| `./example/apps.py`                      | App name                                                                               |
-| `./example/__init__.py`                  | App name                                                                               |
-| `./example/auth_hooks.py`                | Menu hook config incl. icon and label of your app's menu item appearing in the sidebar |
-| `./example/models.py`                    | App name                                                                               |
-| `./example/urls.py`                      | App name                                                                               |
-| `./example/views.py`                     | Permission name and template path                                                      |
-| `./example/templates/example/base.html`  | Title of your app to be shown in all views and as title in the browser tab             |
-| `./example/templates/example/index.html` | Template path                                                                          |
-| `./testauth/local.py`                    | App name in `PACKAGE` constant                                                         |
+| `./finances/`                            | Folder name                                                                            |
+| `./finances/static/finances/`            | Folder name                                                                            |
+| `./finances/templates/finances/`         | Folder name                                                                            |
+| `./pyproject.toml`                       | Update module name for version import, update package name, update title, author, etc. |
+| `./finances/apps.py`                     | App name                                                                               |
+| `./finances/__init__.py`                 | App name                                                                               |
+| `./finances/auth_hooks.py`               | Menu hook config incl. icon and label of your app's menu item appearing in the sidebar |
+| `./finances/models.py`                   | App name                                                                               |
+| `./finances/urls.py`                     | App name                                                                               |
+| `./finances/views.py`                    | Permission name and template path                                                      |
+| `./finances/templates/finances/base.html` | Title of your app to be shown in all views and as title in the browser tab             |
+| `./finances/templates/finances/index.html` | Template path                                                                         |
+| `./testauth/settings/local.py`           | App name in `PACKAGE` constant                                                         |
 | `./.coveragerc`                          | App name                                                                               |
 | `./MANIFEST.in`                          | App name                                                                               |
 | `./README.md`                            | Clear content                                                                          |
