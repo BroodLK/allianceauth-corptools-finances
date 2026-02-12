@@ -14,7 +14,7 @@ keywords = [
 ]
 license = { file = "LICENSE" }
 authors = [
-    { name = "Peter Pfeufer", email = "develop@ppfeufer.de" },
+    { name = "BioBrute", email = "BroodLK@Gmail.com" },
 ]
 requires-python = ">=3.10,<3.14"
 classifiers = [
@@ -38,7 +38,7 @@ dynamic = [
 ]
 dependencies = [
     "allianceauth>=4.3.1,<5",
-    "allianceauth-corptools>=3.0.0b3,<4",
+    "allianceauth-corptools>2,<3",
 ]
 urls.Changelog = "https://github.com/ppfeufer/allianceauth-corptools-finances/blob/master/CHANGELOG.md"
 urls.Tracker = "https://github.com/ppfeufer/allianceauth-corptools-finances/issues"
