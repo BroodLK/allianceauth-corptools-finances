@@ -37,8 +37,8 @@ dynamic = [
     "version",
 ]
 dependencies = [
-    "allianceauth>=4.3.1,<5",
-    "allianceauth-corptools>2,<3",
+    "allianceauth>=4.3.1",
+    "allianceauth-corptools>2",
 ]
 urls.Changelog = "https://github.com/ppfeufer/allianceauth-corptools-finances/blob/master/CHANGELOG.md"
 urls.Tracker = "https://github.com/ppfeufer/allianceauth-corptools-finances/issues"
