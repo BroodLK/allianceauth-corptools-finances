@@ -28,10 +28,15 @@ WALLET_PERMISSIONS = (
     "corptools.global_corp_manager",
     "corptools.holding_corp_wallets",
 )
+APP_ACCESS_PERMISSION = "finances.basic_access"
 
 
 def _user_can_view_wallets(user) -> bool:
     return any(user.has_perm(perm) for perm in WALLET_PERMISSIONS)
+
+
+def _user_can_access_dashboard(user) -> bool:
+    return user.has_perm(APP_ACCESS_PERMISSION) or _user_can_view_wallets(user)
 
 
 def _parse_int_list(values):
@@ -285,7 +290,7 @@ def _build_series_by_ref(entries, ref_types, start_date, end_date, abs_values=Fa
 
 @login_required
 def dashboard(request) -> HttpResponse:
-    if not _user_can_view_wallets(request.user):
+    if not _user_can_access_dashboard(request.user):
         raise PermissionDenied("No permission to view corporation wallet data.")
 
     days_options = [7, 30, 60, 90, 180, 365]

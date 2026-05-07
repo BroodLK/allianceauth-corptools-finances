@@ -10,6 +10,15 @@ from allianceauth.services.hooks import MenuItemHook, UrlHook
 # AA allianceauth-corptools-finances
 from finances import urls
 
+WALLET_PERMISSIONS = (
+    "corptools.own_corp_manager",
+    "corptools.alliance_corp_manager",
+    "corptools.state_corp_manager",
+    "corptools.global_corp_manager",
+    "corptools.holding_corp_wallets",
+)
+APP_ACCESS_PERMISSION = "finances.basic_access"
+
 
 class FinancesMenuItem(MenuItemHook):
     """This class ensures only authorized users will see the menu entry"""
@@ -27,15 +36,8 @@ class FinancesMenuItem(MenuItemHook):
     def render(self, request):
         """Render the menu item"""
 
-        if any(
-            request.user.has_perm(perm)
-            for perm in [
-                "corptools.own_corp_manager",
-                "corptools.alliance_corp_manager",
-                "corptools.state_corp_manager",
-                "corptools.global_corp_manager",
-                "corptools.holding_corp_wallets",
-            ]
+        if request.user.has_perm(APP_ACCESS_PERMISSION) or any(
+            request.user.has_perm(perm) for perm in WALLET_PERMISSIONS
         ):
             return MenuItemHook.render(self, request)
 
