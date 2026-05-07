@@ -4,446 +4,657 @@
 {% load humanize %}
 
 {% block details %}
-    <div class="container-fluid">
-        <div class="card mb-3">
-            <div class="card-header">{% translate "Filters" %}</div>
-            <div class="card-body">
-                <form method="get" class="row g-3">
-                    <div class="col-md-4">
-                        <label for="days" class="form-label">{% translate "Time Window" %}</label>
-                        <select id="days" name="days" class="form-select">
-                            {% for option in days_options %}
-                                <option value="{{ option }}" {% if option == days %}selected{% endif %}>
-                                    {% blocktranslate %}Last {{ option }} days{% endblocktranslate %}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">{% translate "Custom range overrides this selection." %}</div>
+    <div class="container-fluid py-4 finances-stats-dashboard">
+        <div class="finances-dashboard">
+            <div class="card shadow-sm finances-dashboard-card">
+                <div class="card-body p-4 p-xl-5">
+                    <div class="finances-dashboard-inner">
+                        <section class="dashboard-hero">
+                            <div>
+                                <p class="dashboard-kicker mb-2">{% translate "Corporation Finance" %}</p>
+                                <h2 class="dashboard-title">{% translate "Wallet Activity Dashboard" %}</h2>
+                                <p class="dashboard-subtitle mb-0">
+                                    {% translate "Review filtered wallet flow, compare divisions, inspect reference types, and track subsidy payout trends from one finance view." %}
+                                </p>
+                            </div>
+                            <div class="dashboard-hero-actions">
+                                <a href="#reportingScope" class="btn btn-primary">
+                                    {% translate "Adjust Scope" %}
+                                </a>
+                                <a href="#divisionSummary" class="btn btn-outline-light">
+                                    {% translate "Division Summary" %}
+                                </a>
+                            </div>
+                        </section>
+
+                        <div class="dashboard-chip-row">
+                            <span class="dashboard-chip">
+                                <span class="dashboard-chip-label">{% translate "Period" %}</span>
+                                {{ start_date|date:"Y-m-d" }} - {{ end_date|date:"Y-m-d" }}
+                            </span>
+                            <span class="dashboard-chip">
+                                <span class="dashboard-chip-label">{% translate "Divisions" %}</span>
+                                {{ division_rows|length }}
+                            </span>
+                            <span class="dashboard-chip">
+                                <span class="dashboard-chip-label">{% translate "Entries" %}</span>
+                                {{ summary.entry_count|intcomma }}
+                            </span>
+                            <span class="dashboard-chip">
+                                <span class="dashboard-chip-label">{% translate "Income Types" %}</span>
+                                {{ selected_ref_types|length }} / {{ ref_type_choices|length }}
+                            </span>
+                            <span class="dashboard-chip">
+                                <span class="dashboard-chip-label">{% translate "Expense Types" %}</span>
+                                {{ selected_expense_ref_types|length }} / {{ expense_ref_type_choices|length }}
+                            </span>
+                            {% if subsidy_section %}
+                                <span class="dashboard-chip">
+                                    <span class="dashboard-chip-label">{% translate "Subsidy Paid" %}</span>
+                                    {{ subsidy_section.total_paid|floatformat:0|intcomma }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="dashboard-tiles-grid">
+                            <div class="stats-tile">
+                                <div class="stats-tile-label">{% translate "Income (filtered)" %}</div>
+                                <div class="stats-tile-value value-positive">{{ summary.income_total|floatformat:0|intcomma }}</div>
+                                <div class="stats-tile-meta">{{ summary.income_count|intcomma }} {% translate "entries" %}</div>
+                            </div>
+                            <div class="stats-tile">
+                                <div class="stats-tile-label">{% translate "Expenses (filtered)" %}</div>
+                                <div class="stats-tile-value value-negative">{{ summary.expense_total_abs|floatformat:0|intcomma }}</div>
+                                <div class="stats-tile-meta">{{ summary.expense_count|intcomma }} {% translate "entries" %}</div>
+                            </div>
+                            <div class="stats-tile">
+                                <div class="stats-tile-label">{% translate "Net Position" %}</div>
+                                <div class="stats-tile-value {% if summary.net_total < 0 %}value-negative{% elif summary.net_total > 0 %}value-positive{% endif %}">
+                                    {{ summary.net_total|floatformat:0|intcomma }}
+                                </div>
+                                <div class="stats-tile-meta">{% translate "Across selected journals" %}</div>
+                            </div>
+                            <div class="stats-tile">
+                                <div class="stats-tile-label">{% translate "Tracked Days" %}</div>
+                                <div class="stats-tile-value">{{ income_stats.days|intcomma }}</div>
+                                <div class="stats-tile-meta">{% translate "Current reporting window" %}</div>
+                            </div>
+                            <div class="stats-tile">
+                                <div class="stats-tile-label">{% translate "Income Active Days" %}</div>
+                                <div class="stats-tile-value">{{ income_stats.active_days|intcomma }}</div>
+                                <div class="stats-tile-meta">{{ income_stats.days|intcomma }} {% translate "days tracked" %}</div>
+                            </div>
+                            <div class="stats-tile">
+                                <div class="stats-tile-label">{% translate "Expense Active Days" %}</div>
+                                <div class="stats-tile-value">{{ expense_stats.active_days|intcomma }}</div>
+                                <div class="stats-tile-meta">{{ expense_stats.days|intcomma }} {% translate "days tracked" %}</div>
+                            </div>
+                            {% if subsidy_section %}
+                                <div class="stats-tile">
+                                    <div class="stats-tile-label">{% translate "Subsidy Paid" %}</div>
+                                    <div class="stats-tile-value value-positive">{{ subsidy_section.total_paid|floatformat:0|intcomma }}</div>
+                                    <div class="stats-tile-meta">{% translate "Approved and paid contracts" %}</div>
+                                </div>
+                                <div class="stats-tile">
+                                    <div class="stats-tile-label">{% translate "Subsidy Contracts" %}</div>
+                                    <div class="stats-tile-value">{{ subsidy_section.paid_count|intcomma }}</div>
+                                    <div class="stats-tile-meta">{% translate "In the selected period" %}</div>
+                                </div>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <label for="start_date" class="form-label">{% translate "Start Date" %}</label>
-                        <input
-                            id="start_date"
-                            name="start_date"
-                            type="date"
-                            class="form-control"
-                            value="{{ custom_start_value }}"
-                        >
+                </div>
+            </div>
+
+            <div class="dashboard-control-grid">
+                <section class="stats-panel dashboard-control-panel" id="reportingScope">
+                    <div class="stats-panel-header">
+                        <div>
+                            <div class="stats-panel-kicker">{% translate "Filters" %}</div>
+                            <h3 class="stats-panel-title">{% translate "Reporting Scope" %}</h3>
+                            <p class="stats-panel-subtitle">
+                                {% translate "Income and expense totals respect the selected reference types below." %}
+                            </p>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <label for="end_date" class="form-label">{% translate "End Date" %}</label>
-                        <input
-                            id="end_date"
-                            name="end_date"
-                            type="date"
-                            class="form-control"
-                            value="{{ custom_end_value }}"
-                        >
-                    </div>
-                    <div class="col-md-4">
-                        <label for="divisions" class="form-label">{% translate "Wallet Divisions" %}</label>
-                        <select id="divisions" name="divisions" class="form-select finances-select finances-select--neutral" multiple size="6">
-                            {% for division in divisions %}
-                                <option value="{{ division.id }}" {% if division.id in division_ids %}selected{% endif %}>
-                                    {{ division.corporation.corporation.corporation_name }} -
-                                    {{ division.division }}{% if division.name %} {{ division.name }}{% endif %}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">{% translate "Hold Ctrl/Cmd to select multiple divisions." %}</div>
-                        <div
-                            class="finances-selected"
-                            data-selected-list="divisions"
-                            data-badge-class="bg-secondary-subtle text-secondary-emphasis"
-                            data-empty-text="{% translate "None" %}"
-                        >
-                            <div class="finances-selected__label small text-muted">{% translate "Selected" %}:</div>
-                            <div class="finances-selected__list">
+                    <form method="get" class="dashboard-filter-grid mt-3">
+                        <div class="dashboard-field">
+                            <label for="days" class="form-label">{% translate "Time Window" %}</label>
+                            <select id="days" name="days" class="form-select">
+                                {% for option in days_options %}
+                                    <option value="{{ option }}" {% if option == days %}selected{% endif %}>
+                                        {% blocktranslate %}Last {{ option }} days{% endblocktranslate %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">{% translate "Custom dates override this selection." %}</div>
+                        </div>
+                        <div class="dashboard-field">
+                            <label for="start_date" class="form-label">{% translate "Start Date" %}</label>
+                            <input
+                                id="start_date"
+                                name="start_date"
+                                type="date"
+                                class="form-control"
+                                value="{{ custom_start_value }}"
+                            >
+                        </div>
+                        <div class="dashboard-field">
+                            <label for="end_date" class="form-label">{% translate "End Date" %}</label>
+                            <input
+                                id="end_date"
+                                name="end_date"
+                                type="date"
+                                class="form-control"
+                                value="{{ custom_end_value }}"
+                            >
+                        </div>
+                        <div class="dashboard-field dashboard-field--wide">
+                            <label for="divisions" class="form-label">{% translate "Wallet Divisions" %}</label>
+                            <select id="divisions" name="divisions" class="form-select finances-select finances-select--neutral" multiple size="6">
                                 {% for division in divisions %}
-                                    {% if division.id in division_ids %}
-                                        <span class="badge bg-secondary-subtle text-secondary-emphasis">
-                                            {{ division.corporation.corporation.corporation_name }} -
-                                            {{ division.division }}{% if division.name %} {{ division.name }}{% endif %}
-                                        </span>
-                                    {% endif %}
+                                    <option value="{{ division.id }}" {% if division.id in division_ids %}selected{% endif %}>
+                                        {{ division.corporation.corporation.corporation_name }} -
+                                        {{ division.division }}{% if division.name %} {{ division.name }}{% endif %}
+                                    </option>
                                 {% endfor %}
+                            </select>
+                            <div class="form-text">{% translate "Hold Ctrl/Cmd to select multiple divisions." %}</div>
+                            <div
+                                class="finances-selected"
+                                data-selected-list="divisions"
+                                data-badge-class="bg-secondary-subtle text-secondary-emphasis"
+                                data-empty-text="{% translate "None" %}"
+                            >
+                                <div class="finances-selected__label">{% translate "Selected" %}</div>
+                                <div class="finances-selected__list">
+                                    {% for division in divisions %}
+                                        {% if division.id in division_ids %}
+                                            <span class="badge bg-secondary-subtle text-secondary-emphasis">
+                                                {{ division.corporation.corporation.corporation_name }} -
+                                                {{ division.division }}{% if division.name %} {{ division.name }}{% endif %}
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="ref_types" class="form-label">{% translate "Income Reference Types" %}</label>
-                        <select id="ref_types" name="ref_types" class="form-select finances-select finances-select--income" multiple size="6">
-                            {% for ref in ref_type_choices %}
-                                <option value="{{ ref.value }}" {% if ref.value in selected_ref_types %}selected{% endif %}>
-                                    {{ ref.label }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">{% translate "Leave empty to include all income types." %}</div>
-                        <div
-                            class="finances-selected"
-                            data-selected-list="ref_types"
-                            data-badge-class="bg-primary-subtle text-primary-emphasis"
-                            data-empty-text="{% translate "None" %}"
-                        >
-                            <div class="finances-selected__label small text-muted">{% translate "Selected" %}:</div>
-                            <div class="finances-selected__list">
+                        <div class="dashboard-field dashboard-field--wide">
+                            <label for="ref_types" class="form-label">{% translate "Income Reference Types" %}</label>
+                            <select id="ref_types" name="ref_types" class="form-select finances-select finances-select--income" multiple size="6">
                                 {% for ref in ref_type_choices %}
-                                    {% if ref.value in selected_ref_types %}
-                                        <span class="badge bg-primary-subtle text-primary-emphasis">
-                                            {{ ref.label }}
-                                        </span>
-                                    {% endif %}
+                                    <option value="{{ ref.value }}" {% if ref.value in selected_ref_types %}selected{% endif %}>
+                                        {{ ref.label }}
+                                    </option>
                                 {% endfor %}
+                            </select>
+                            <div class="form-text">{% translate "Leave empty to include all income types." %}</div>
+                            <div
+                                class="finances-selected"
+                                data-selected-list="ref_types"
+                                data-badge-class="bg-primary-subtle text-primary-emphasis"
+                                data-empty-text="{% translate "None" %}"
+                            >
+                                <div class="finances-selected__label">{% translate "Selected" %}</div>
+                                <div class="finances-selected__list">
+                                    {% for ref in ref_type_choices %}
+                                        {% if ref.value in selected_ref_types %}
+                                            <span class="badge bg-primary-subtle text-primary-emphasis">
+                                                {{ ref.label }}
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="expense_ref_types" class="form-label">{% translate "Expense Reference Types" %}</label>
-                        <select id="expense_ref_types" name="expense_ref_types" class="form-select finances-select finances-select--expense" multiple size="6">
-                            {% for ref in expense_ref_type_choices %}
-                                <option value="{{ ref.value }}" {% if ref.value in selected_expense_ref_types %}selected{% endif %}>
-                                    {{ ref.label }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">{% translate "Leave empty to include all expense types." %}</div>
-                        <div
-                            class="finances-selected"
-                            data-selected-list="expense_ref_types"
-                            data-badge-class="bg-danger-subtle text-danger-emphasis"
-                            data-empty-text="{% translate "None" %}"
-                        >
-                            <div class="finances-selected__label small text-muted">{% translate "Selected" %}:</div>
-                            <div class="finances-selected__list">
+                        <div class="dashboard-field dashboard-field--wide">
+                            <label for="expense_ref_types" class="form-label">{% translate "Expense Reference Types" %}</label>
+                            <select id="expense_ref_types" name="expense_ref_types" class="form-select finances-select finances-select--expense" multiple size="6">
                                 {% for ref in expense_ref_type_choices %}
-                                    {% if ref.value in selected_expense_ref_types %}
-                                        <span class="badge bg-danger-subtle text-danger-emphasis">
-                                            {{ ref.label }}
-                                        </span>
-                                    {% endif %}
+                                    <option value="{{ ref.value }}" {% if ref.value in selected_expense_ref_types %}selected{% endif %}>
+                                        {{ ref.label }}
+                                    </option>
                                 {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <button class="btn btn-primary" type="submit">{% translate "Apply Filters" %}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="row g-3 mb-3">
-            <div class="col-md-3">
-                <div class="card h-100 border-success">
-                    <div class="card-body">
-                        <div class="text-muted">{% translate "Income (filtered)" %}</div>
-                        <div class="fs-4 text-success">
-                            {{ summary.income_total|floatformat:0|intcomma }}
-                        </div>
-                        <div class="small text-muted">
-                            {{ summary.income_count }} {% translate "entries" %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card h-100 border-danger">
-                    <div class="card-body">
-                        <div class="text-muted">{% translate "Expenses (filtered)" %}</div>
-                        <div class="fs-4 text-danger">
-                            {{ summary.expense_total_abs|floatformat:0|intcomma }}
-                        </div>
-                        <div class="small text-muted">
-                            {{ summary.expense_count }} {% translate "entries" %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="text-muted">{% translate "Net" %}</div>
-                        <div class="fs-4 {% if summary.net_total < 0 %}text-danger{% elif summary.net_total > 0 %}text-success{% endif %}">
-                            {{ summary.net_total|floatformat:0|intcomma }}
-                        </div>
-                        <div class="small text-muted">
-                            {{ summary.entry_count }} {% translate "total entries" %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="text-muted">{% translate "Period" %}</div>
-                        <div class="small">
-                            {{ start_date|date:"Y-m-d" }} - {{ end_date|date:"Y-m-d" }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="mb-3 text-muted small">
-            {% translate "Income and expense totals respect their selected reference types." %}
-        </div>
-
-        <div class="row g-3">
-            <div class="col-12">
-                <div class="card h-100">
-                    <div class="card-header">{% translate "Income by Reference Type" %}</div>
-                    <div class="card-body">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                            <div>
-                                <div class="fw-semibold">{% translate "Daily income trend" %}</div>
-                                <div class="text-muted small">
-                                    {% blocktranslate %}From {{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}{% endblocktranslate %}
-                                </div>
-                            </div>
-                            <div class="finances-chart-controls">
-                                <div class="finances-legend" data-legend="income">
-                                    <span class="finances-legend__item">
-                                        <span class="finances-legend__swatch" data-theme="income"></span>
-                                        {% translate "Income (filtered)" %}
-                                    </span>
-                                </div>
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-secondary"
-                                    data-chart-toggle="income"
-                                    data-toggle-breakout="{% translate "Break out by ref type" %}"
-                                    data-toggle-total="{% translate "Show total" %}"
-                                >
-                                    {% translate "Break out by ref type" %}
-                                </button>
-                            </div>
-                        </div>
-                        <div class="row row-cols-2 row-cols-md-4 g-2 text-center small mb-3">
-                            <div class="col">
-                                <div class="text-muted">{% translate "Total" %}</div>
-                                <div class="fw-semibold">{{ income_stats.total|floatformat:0|intcomma }}</div>
-                            </div>
-                            <div class="col">
-                                <div class="text-muted">{% translate "Avg / Day" %}</div>
-                                <div class="fw-semibold">{{ income_stats.avg|floatformat:0|intcomma }}</div>
-                            </div>
-                            <div class="col">
-                                <div class="text-muted">{% translate "Peak Day" %}</div>
-                                <div class="fw-semibold">{{ income_stats.max|floatformat:0|intcomma }}</div>
-                                <div class="text-muted">{{ income_stats.max_date|date:"Y-m-d" }}</div>
-                            </div>
-                            <div class="col">
-                                <div class="text-muted">{% translate "Active Days" %}</div>
-                                <div class="fw-semibold">{{ income_stats.active_days }}/{{ income_stats.days }}</div>
-                            </div>
-                        </div>
-                        <div class="finances-line-chart" data-chart="income" data-theme="income" data-total-label="{% translate "Income (filtered)" %}">
-                            <svg viewBox="0 0 600 440" preserveAspectRatio="none" role="img" aria-label="{% translate "Income trend" %}">
-                                <g data-grid></g>
-                                <g data-axis></g>
-                                <g data-series></g>
-                                <path class="finances-line-chart__area" d=""></path>
-                                <path class="finances-line-chart__line" d=""></path>
-                                <line class="finances-line-chart__hover-line" x1="0" y1="0" x2="0" y2="0"></line>
-                                <circle class="finances-line-chart__hover-point" cx="0" cy="0" r="3"></circle>
-                                <g data-hover-points></g>
-                            </svg>
-                            <div class="finances-line-chart__tooltip d-none"></div>
-                            <div class="finances-line-chart__empty text-muted d-none">
-                                {% translate "No income data for this period." %}
-                            </div>
-                        </div>
-                        {{ income_series|json_script:"income-series-data" }}
-                        {{ income_series_by_ref|json_script:"income-series-by-ref-data" }}
-                        <div class="table-responsive mt-3">
-                            <table class="table table-sm mb-0 finances-table-centered">
-                                <thead>
-                                    <tr>
-                                        <th>{% translate "Type" %}</th>
-                                        <th>{% translate "Total" %}</th>
-                                        <th>{% translate "Entries" %}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for row in income_by_ref %}
-                                        <tr class="finances-drill-row" data-drill="income_ref" data-ref-type="{{ row.ref_type }}">
-                                            <td>{{ row.label }}</td>
-                                            <td>{{ row.total|floatformat:0|intcomma }}</td>
-                                            <td>{{ row.count }}</td>
-                                        </tr>
-                                    {% empty %}
-                                        <tr>
-                                            <td colspan="3" class="text-center text-muted">
-                                                {% translate "No income entries found for this period." %}
-                                            </td>
-                                        </tr>
+                            </select>
+                            <div class="form-text">{% translate "Leave empty to include all expense types." %}</div>
+                            <div
+                                class="finances-selected"
+                                data-selected-list="expense_ref_types"
+                                data-badge-class="bg-danger-subtle text-danger-emphasis"
+                                data-empty-text="{% translate "None" %}"
+                            >
+                                <div class="finances-selected__label">{% translate "Selected" %}</div>
+                                <div class="finances-selected__list">
+                                    {% for ref in expense_ref_type_choices %}
+                                        {% if ref.value in selected_expense_ref_types %}
+                                            <span class="badge bg-danger-subtle text-danger-emphasis">
+                                                {{ ref.label }}
+                                            </span>
+                                        {% endif %}
                                     {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3 mt-0">
-            <div class="col-12">
-                <div class="card h-100">
-                    <div class="card-header">{% translate "Expenses by Reference Type" %}</div>
-                    <div class="card-body">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                            <div>
-                                <div class="fw-semibold">{% translate "Daily expense trend" %}</div>
-                                <div class="text-muted small">
-                                    {% blocktranslate %}From {{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}{% endblocktranslate %}
                                 </div>
                             </div>
-                            <div class="finances-chart-controls">
-                                <div class="finances-legend" data-legend="expenses">
-                                    <span class="finances-legend__item">
-                                        <span class="finances-legend__swatch" data-theme="expenses"></span>
-                                        {% translate "Expenses" %}
-                                    </span>
-                                </div>
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-secondary"
-                                    data-chart-toggle="expenses"
-                                    data-toggle-breakout="{% translate "Break out by ref type" %}"
-                                    data-toggle-total="{% translate "Show total" %}"
-                                >
-                                    {% translate "Break out by ref type" %}
-                                </button>
-                            </div>
                         </div>
-                        <div class="row row-cols-2 row-cols-md-4 g-2 text-center small mb-3">
-                            <div class="col">
-                                <div class="text-muted">{% translate "Total" %}</div>
-                                <div class="fw-semibold">{{ expense_stats.total|floatformat:0|intcomma }}</div>
+                        <div class="dashboard-actions">
+                            <div class="dashboard-control-note">
+                                {% translate "Use the chart tables and division rows below to drill into the matching journal entries." %}
                             </div>
-                            <div class="col">
-                                <div class="text-muted">{% translate "Avg / Day" %}</div>
-                                <div class="fw-semibold">{{ expense_stats.avg|floatformat:0|intcomma }}</div>
-                            </div>
-                            <div class="col">
-                                <div class="text-muted">{% translate "Peak Day" %}</div>
-                                <div class="fw-semibold">{{ expense_stats.max|floatformat:0|intcomma }}</div>
-                                <div class="text-muted">{{ expense_stats.max_date|date:"Y-m-d" }}</div>
-                            </div>
-                            <div class="col">
-                                <div class="text-muted">{% translate "Active Days" %}</div>
-                                <div class="fw-semibold">{{ expense_stats.active_days }}/{{ expense_stats.days }}</div>
-                            </div>
+                            <button class="btn btn-primary" type="submit">{% translate "Apply Filters" %}</button>
                         </div>
-                        <div class="finances-line-chart" data-chart="expenses" data-theme="expenses" data-total-label="{% translate "Expenses (filtered)" %}">
-                            <svg viewBox="0 0 600 440" preserveAspectRatio="none" role="img" aria-label="{% translate "Expense trend" %}">
-                                <g data-grid></g>
-                                <g data-axis></g>
-                                <g data-series></g>
-                                <path class="finances-line-chart__area" d=""></path>
-                                <path class="finances-line-chart__line" d=""></path>
-                                <line class="finances-line-chart__hover-line" x1="0" y1="0" x2="0" y2="0"></line>
-                                <circle class="finances-line-chart__hover-point" cx="0" cy="0" r="3"></circle>
-                                <g data-hover-points></g>
-                            </svg>
-                            <div class="finances-line-chart__tooltip d-none"></div>
-                            <div class="finances-line-chart__empty text-muted d-none">
-                                {% translate "No expense data for this period." %}
-                            </div>
-                        </div>
-                        {{ expense_series|json_script:"expense-series-data" }}
-                        {{ expense_series_by_ref|json_script:"expense-series-by-ref-data" }}
-                        <div class="table-responsive mt-3">
-                            <table class="table table-sm mb-0 finances-table-centered">
-                                <thead>
-                                    <tr>
-                                        <th>{% translate "Type" %}</th>
-                                        <th>{% translate "Total" %}</th>
-                                        <th>{% translate "Entries" %}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for row in expense_by_ref %}
-                                        <tr class="finances-drill-row" data-drill="expense_ref" data-ref-type="{{ row.ref_type }}">
-                                            <td>{{ row.label }}</td>
-                                            <td>{{ row.total_abs|floatformat:0|intcomma }}</td>
-                                            <td>{{ row.count }}</td>
-                                        </tr>
-                                    {% empty %}
-                                        <tr>
-                                            <td colspan="3" class="text-center text-muted">
-                                                {% translate "No expense entries found for this period." %}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                    </form>
+                </section>
+
+                <section class="stats-panel dashboard-note-panel">
+                    <div class="stats-panel-header">
+                        <div>
+                            <div class="stats-panel-kicker">{% translate "Scope Summary" %}</div>
+                            <h3 class="stats-panel-title">{% translate "Current Coverage" %}</h3>
+                            <p class="stats-panel-subtitle">
+                                {% translate "This panel summarizes the current journal slice before you drill into the underlying rows." %}
+                            </p>
                         </div>
                     </div>
-                </div>
+                    <div class="usage-metric-layout mt-3">
+                        <div class="usage-metric-stack">
+                            <div class="usage-metric-item usage-metric-item-compact">
+                                <span class="usage-metric-label">{% translate "Journal Entries" %}</span>
+                                <span class="usage-metric-value">{{ summary.entry_count|intcomma }}</span>
+                            </div>
+                            <div class="usage-metric-item usage-metric-item-compact">
+                                <span class="usage-metric-label">{% translate "Income Types In Scope" %}</span>
+                                <span class="usage-metric-value">{{ selected_ref_types|length }} / {{ ref_type_choices|length }}</span>
+                            </div>
+                            <div class="usage-metric-item usage-metric-item-compact">
+                                <span class="usage-metric-label">{% translate "Expense Types In Scope" %}</span>
+                                <span class="usage-metric-value">{{ selected_expense_ref_types|length }} / {{ expense_ref_type_choices|length }}</span>
+                            </div>
+                        </div>
+                        <div class="usage-metric-item usage-metric-item-highlight usage-metric-item-feature">
+                            <span class="usage-metric-label">{% translate "Net Position" %}</span>
+                            <span class="usage-metric-value {% if summary.net_total < 0 %}value-negative{% elif summary.net_total > 0 %}value-positive{% endif %}">
+                                {{ summary.net_total|floatformat:0|intcomma }}
+                            </span>
+                            <span class="usage-metric-meta">{% translate "Filtered income minus filtered expenses" %}</span>
+                        </div>
+                    </div>
+                    <div class="table-metric-grid mt-3">
+                        <div class="table-metric-item table-metric-item-compact">
+                            <span class="table-metric-label">{% translate "Window Start" %}</span>
+                            <span class="table-metric-value">{{ start_date|date:"Y-m-d" }}</span>
+                        </div>
+                        <div class="table-metric-item table-metric-item-compact">
+                            <span class="table-metric-label">{% translate "Window End" %}</span>
+                            <span class="table-metric-value">{{ end_date|date:"Y-m-d" }}</span>
+                        </div>
+                        <div class="table-metric-item table-metric-item-compact">
+                            <span class="table-metric-label">{% translate "Tracked Days" %}</span>
+                            <span class="table-metric-value">{{ income_stats.days|intcomma }}</span>
+                        </div>
+                        <div class="table-metric-item table-metric-item-compact">
+                            <span class="table-metric-label">{% translate "AA Subsidy" %}</span>
+                            <span class="table-metric-value">
+                                {% if subsidy_section %}
+                                    {{ subsidy_section.total_paid|floatformat:0|intcomma }}
+                                {% else %}
+                                    {% translate "Unavailable" %}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <ul class="dashboard-note-list mt-3">
+                        <li class="dashboard-note-item">
+                            <span class="dashboard-note-icon">1</span>
+                            <span>{% translate "Reference type rows and division rows open drilldown transactions using the same filters shown above." %}</span>
+                        </li>
+                        <li class="dashboard-note-item">
+                            <span class="dashboard-note-icon">2</span>
+                            <span>{% translate "The trend charts now use the aa-Indy_Hub canvas style and keep the optional ref-type breakout mode for income and expense views." %}</span>
+                        </li>
+                        {% if subsidy_section %}
+                            <li class="dashboard-note-item">
+                                <span class="dashboard-note-icon">3</span>
+                                <span>{% translate "Paid subsidy totals are grouped by contract issue date because aa-subsidy does not store a separate payment timestamp." %}</span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </section>
             </div>
-        </div>
 
-        <div class="card mt-3">
-            <div class="card-header">{% translate "Division Summary" %}</div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0 finances-table-centered">
-                        <thead>
-                            <tr>
-                                <th>{% translate "Corporation" %}</th>
-                                <th>{% translate "Division" %}</th>
-                                <th>{% translate "Balance" %}</th>
-                                <th>{% translate "Income (filtered)" %}</th>
-                                <th>{% translate "Expenses" %}</th>
-                                <th>{% translate "Net" %}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in division_rows %}
-                                <tr class="finances-drill-row" data-drill="division" data-division-id="{{ row.division_id }}">
-                                    <td>{{ row.corp_name }}</td>
-                                    <td>{{ row.division }}{% if row.name %} {{ row.name }}{% endif %}</td>
-                                    <td>{{ row.balance|floatformat:0|intcomma }}</td>
-                                    <td>{{ row.income|floatformat:0|intcomma }}</td>
-                                    <td>{{ row.expenses|floatformat:0|intcomma }}</td>
-                                    <td>
-                                        <span class="{% if row.net < 0 %}text-danger{% elif row.net > 0 %}text-success{% endif %}">
-                                            {{ row.net|floatformat:0|intcomma }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            {% empty %}
+            <div class="dashboard-panels-grid dashboard-panels-grid--charts">
+                <section class="stats-panel">
+                    <div class="stats-panel-header">
+                        <div>
+                            <div class="stats-panel-kicker">{% translate "Income Analysis" %}</div>
+                            <h3 class="stats-panel-title">{% translate "Income by Reference Type" %}</h3>
+                            <p class="stats-panel-subtitle">
+                                {% blocktranslate %}From {{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}{% endblocktranslate %}
+                            </p>
+                        </div>
+                        <div class="dashboard-chart-actions">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-secondary dashboard-chart-toggle"
+                                data-chart-toggle="income"
+                                data-toggle-breakout="{% translate "Break out by ref type" %}"
+                                data-toggle-total="{% translate "Show total" %}"
+                            >
+                                {% translate "Break out by ref type" %}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-summary-grid mt-3">
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Total" %}</span>
+                            <span class="chart-summary-item-value">{{ income_stats.total|floatformat:0|intcomma }}</span>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Avg / Day" %}</span>
+                            <span class="chart-summary-item-value">{{ income_stats.avg|floatformat:0|intcomma }}</span>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Peak Day" %}</span>
+                            <span class="chart-summary-item-value">{{ income_stats.max|floatformat:0|intcomma }}</span>
+                            <span class="chart-summary-item-note">{{ income_stats.max_date|date:"Y-m-d"|default:"-" }}</span>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Active Days" %}</span>
+                            <span class="chart-summary-item-value">{{ income_stats.active_days }}/{{ income_stats.days }}</span>
+                        </div>
+                    </div>
+                    <div class="dashboard-chart-shell mt-3" data-chart-theme="income">
+                        <div class="dashboard-chart-legend" data-legend="income"></div>
+                        <div class="dashboard-chart-stage">
+                            <canvas
+                                id="incomeTrendChart"
+                                class="dashboard-chart-canvas"
+                                data-total-label="{% translate "Income (filtered)" %}"
+                                role="img"
+                                aria-label="{% translate "Income trend" %}"
+                            ></canvas>
+                            <div class="dashboard-chart-tooltip d-none"></div>
+                            <div class="dashboard-empty d-none">{% translate "No income data for this period." %}</div>
+                        </div>
+                    </div>
+                    {{ income_series|json_script:"income-series-data" }}
+                    {{ income_series_by_ref|json_script:"income-series-by-ref-data" }}
+                    <div class="table-responsive mt-3">
+                        <table class="table align-middle dashboard-table mb-0">
+                            <thead>
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted">
-                                        {% translate "No divisions available." %}
-                                    </td>
+                                    <th class="text-start">{% translate "Type" %}</th>
+                                    <th class="text-end">{% translate "Total" %}</th>
+                                    <th class="text-end">{% translate "Entries" %}</th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {% for row in income_by_ref %}
+                                    <tr class="finances-drill-row" data-drill="income_ref" data-ref-type="{{ row.ref_type }}">
+                                        <td class="text-start dashboard-table-strong">{{ row.label }}</td>
+                                        <td class="text-end reference-total value-positive">{{ row.total|floatformat:0|intcomma }}</td>
+                                        <td class="text-end">{{ row.count|intcomma }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="dashboard-table-muted text-center py-4">
+                                            {% translate "No income entries found for this period." %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="stats-panel">
+                    <div class="stats-panel-header">
+                        <div>
+                            <div class="stats-panel-kicker">{% translate "Expense Analysis" %}</div>
+                            <h3 class="stats-panel-title">{% translate "Expenses by Reference Type" %}</h3>
+                            <p class="stats-panel-subtitle">
+                                {% blocktranslate %}From {{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}{% endblocktranslate %}
+                            </p>
+                        </div>
+                        <div class="dashboard-chart-actions">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-secondary dashboard-chart-toggle"
+                                data-chart-toggle="expenses"
+                                data-toggle-breakout="{% translate "Break out by ref type" %}"
+                                data-toggle-total="{% translate "Show total" %}"
+                            >
+                                {% translate "Break out by ref type" %}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-summary-grid mt-3">
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Total" %}</span>
+                            <span class="chart-summary-item-value">{{ expense_stats.total|floatformat:0|intcomma }}</span>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Avg / Day" %}</span>
+                            <span class="chart-summary-item-value">{{ expense_stats.avg|floatformat:0|intcomma }}</span>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Peak Day" %}</span>
+                            <span class="chart-summary-item-value">{{ expense_stats.max|floatformat:0|intcomma }}</span>
+                            <span class="chart-summary-item-note">{{ expense_stats.max_date|date:"Y-m-d"|default:"-" }}</span>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Active Days" %}</span>
+                            <span class="chart-summary-item-value">{{ expense_stats.active_days }}/{{ expense_stats.days }}</span>
+                        </div>
+                    </div>
+                    <div class="dashboard-chart-shell mt-3" data-chart-theme="expenses">
+                        <div class="dashboard-chart-legend" data-legend="expenses"></div>
+                        <div class="dashboard-chart-stage">
+                            <canvas
+                                id="expenseTrendChart"
+                                class="dashboard-chart-canvas"
+                                data-total-label="{% translate "Expenses (filtered)" %}"
+                                role="img"
+                                aria-label="{% translate "Expense trend" %}"
+                            ></canvas>
+                            <div class="dashboard-chart-tooltip d-none"></div>
+                            <div class="dashboard-empty d-none">{% translate "No expense data for this period." %}</div>
+                        </div>
+                    </div>
+                    {{ expense_series|json_script:"expense-series-data" }}
+                    {{ expense_series_by_ref|json_script:"expense-series-by-ref-data" }}
+                    <div class="table-responsive mt-3">
+                        <table class="table align-middle dashboard-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-start">{% translate "Type" %}</th>
+                                    <th class="text-end">{% translate "Total" %}</th>
+                                    <th class="text-end">{% translate "Entries" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in expense_by_ref %}
+                                    <tr class="finances-drill-row" data-drill="expense_ref" data-ref-type="{{ row.ref_type }}">
+                                        <td class="text-start dashboard-table-strong">{{ row.label }}</td>
+                                        <td class="text-end reference-total value-negative">{{ row.total_abs|floatformat:0|intcomma }}</td>
+                                        <td class="text-end">{{ row.count|intcomma }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="dashboard-table-muted text-center py-4">
+                                            {% translate "No expense entries found for this period." %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            {% if subsidy_section %}
+                <section class="stats-panel">
+                    <div class="stats-panel-header">
+                        <div>
+                            <div class="stats-panel-kicker">{% translate "AA Subsidy" %}</div>
+                            <h3 class="stats-panel-title">{% translate "Subsidy Paid Per Period" %}</h3>
+                            <p class="stats-panel-subtitle">
+                                {% translate "Paid subsidy totals are grouped by contract issue date because aa-subsidy does not store a separate payment timestamp." %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="chart-summary-grid mt-3">
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Total Paid" %}</span>
+                            <span class="chart-summary-item-value value-positive">{{ subsidy_section.total_paid|floatformat:0|intcomma }}</span>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Paid Contracts" %}</span>
+                            <span class="chart-summary-item-value">{{ subsidy_section.paid_count|intcomma }}</span>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Avg / Contract" %}</span>
+                            <span class="chart-summary-item-value">{{ subsidy_section.avg_paid|floatformat:0|intcomma }}</span>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span class="chart-summary-item-label">{% translate "Peak Day" %}</span>
+                            <span class="chart-summary-item-value">{{ subsidy_section.stats.max|floatformat:0|intcomma }}</span>
+                            <span class="chart-summary-item-note">{{ subsidy_section.stats.max_date|date:"Y-m-d"|default:"-" }}</span>
+                        </div>
+                    </div>
+                    <div class="table-metric-grid mt-3">
+                        <div class="table-metric-item table-metric-item-compact">
+                            <span class="table-metric-label">{% translate "Active Days" %}</span>
+                            <span class="table-metric-value">{{ subsidy_section.stats.active_days }}/{{ subsidy_section.stats.days }}</span>
+                        </div>
+                        <div class="table-metric-item table-metric-item-compact">
+                            <span class="table-metric-label">{% translate "Tracked Days" %}</span>
+                            <span class="table-metric-value">{{ subsidy_section.stats.days|intcomma }}</span>
+                        </div>
+                        <div class="table-metric-item table-metric-item-compact">
+                            <span class="table-metric-label">{% translate "Avg / Day" %}</span>
+                            <span class="table-metric-value">{{ subsidy_section.stats.avg|floatformat:0|intcomma }}</span>
+                        </div>
+                        <div class="table-metric-item table-metric-item-compact">
+                            <span class="table-metric-label">{% translate "Source" %}</span>
+                            <span class="table-metric-value">{% translate "aa-subsidy" %}</span>
+                        </div>
+                    </div>
+                    <div class="dashboard-chart-shell mt-3" data-chart-theme="subsidy">
+                        <div class="dashboard-chart-legend" data-legend="subsidy"></div>
+                        <div class="dashboard-chart-stage">
+                            <canvas
+                                id="subsidyTrendChart"
+                                class="dashboard-chart-canvas"
+                                data-total-label="{% translate "Paid subsidy" %}"
+                                role="img"
+                                aria-label="{% translate "Subsidy paid trend" %}"
+                            ></canvas>
+                            <div class="dashboard-chart-tooltip d-none"></div>
+                            <div class="dashboard-empty d-none">{% translate "No paid subsidy data for this period." %}</div>
+                        </div>
+                    </div>
+                    {{ subsidy_section.series|json_script:"subsidy-series-data" }}
+                </section>
+            {% endif %}
+
+            <div class="dashboard-summary-grid dashboard-summary-grid--finance">
+                <section class="dashboard-table-card">
+                    <div class="dashboard-table-header">
+                        <div>
+                            <div class="stats-panel-kicker">{% translate "Division Focus" %}</div>
+                            <h3 class="dashboard-table-title">{% translate "Division Overview" %}</h3>
+                            <p class="dashboard-table-subtitle">
+                                {% translate "Select a division to open the matching filtered journal entries." %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="division-overview-list mt-3">
+                        {% for row in division_rows %}
+                            <div class="division-overview-item finances-drill-row" data-drill="division" data-division-id="{{ row.division_id }}">
+                                <div>
+                                    <div class="division-overview-title">{{ row.division }}{% if row.name %} {{ row.name }}{% endif %}</div>
+                                    <div class="division-overview-subtitle">{{ row.corp_name }}</div>
+                                </div>
+                                <div class="division-overview-meta">
+                                    <span class="{% if row.net < 0 %}value-negative{% elif row.net > 0 %}value-positive{% else %}value-neutral{% endif %}">
+                                        {{ row.net|floatformat:0|intcomma }}
+                                    </span>
+                                    <span class="division-overview-balance">
+                                        {% translate "Balance" %}: {{ row.balance|floatformat:0|intcomma }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="dashboard-empty">
+                                {% translate "No divisions available." %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="dashboard-table-card" id="divisionSummary">
+                    <div class="dashboard-table-header">
+                        <div>
+                            <div class="stats-panel-kicker">{% translate "Wallet Coverage" %}</div>
+                            <h3 class="dashboard-table-title">{% translate "Division Summary" %}</h3>
+                            <p class="dashboard-table-subtitle">
+                                {% translate "Balances and filtered flow stay aligned with the selected reporting scope." %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="table-responsive mt-3">
+                        <table class="table align-middle dashboard-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-start">{% translate "Corporation" %}</th>
+                                    <th class="text-start">{% translate "Division" %}</th>
+                                    <th class="text-end">{% translate "Balance" %}</th>
+                                    <th class="text-end">{% translate "Income (filtered)" %}</th>
+                                    <th class="text-end">{% translate "Expenses" %}</th>
+                                    <th class="text-end">{% translate "Net" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in division_rows %}
+                                    <tr class="finances-drill-row" data-drill="division" data-division-id="{{ row.division_id }}">
+                                        <td class="text-start">{{ row.corp_name }}</td>
+                                        <td class="text-start dashboard-table-strong">{{ row.division }}{% if row.name %} {{ row.name }}{% endif %}</td>
+                                        <td class="text-end">{{ row.balance|floatformat:0|intcomma }}</td>
+                                        <td class="text-end value-positive">{{ row.income|floatformat:0|intcomma }}</td>
+                                        <td class="text-end value-negative">{{ row.expenses|floatformat:0|intcomma }}</td>
+                                        <td class="text-end">
+                                            <span class="{% if row.net < 0 %}value-negative{% elif row.net > 0 %}value-positive{% else %}value-neutral{% endif %}">
+                                                {{ row.net|floatformat:0|intcomma }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="dashboard-table-muted text-center py-4">
+                                            {% translate "No divisions available." %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </div>
 
         {% if drilldown %}
-            <div class="modal fade" id="drilldownModal" tabindex="-1" aria-hidden="true">
+            <div class="modal fade drilldown-modal" id="drilldownModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-xl modal-dialog-scrollable">
                     <div class="modal-content">
                         <div class="modal-header">
                             <div>
-                                <h5 class="modal-title">
-                                    {% translate "Drilldown" %}: {{ drilldown.title }}
-                                </h5>
-                                <div class="text-muted small">
-                                    {{ drilldown.count }} {% translate "entries" %}
-                                </div>
+                                <h5 class="modal-title">{% translate "Drilldown" %}: {{ drilldown.title }}</h5>
+                                <div class="text-muted small">{{ drilldown.count }} {% translate "entries" %}</div>
                             </div>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate "Close" %}"></button>
                         </div>
                         <div class="modal-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-sm table-striped mb-0">
+                                <table class="table align-middle dashboard-table drilldown-table mb-0">
                                     <thead>
                                         <tr>
                                             <th>{% translate "Date" %}</th>
@@ -494,7 +705,7 @@
                                             </tr>
                                         {% empty %}
                                             <tr>
-                                                <td colspan="16" class="text-center text-muted">
+                                                <td colspan="16" class="dashboard-table-muted text-center py-4">
                                                     {% translate "No matching transactions." %}
                                                 </td>
                                             </tr>
@@ -530,651 +741,1149 @@
 {% endblock %}
 
 {% block extra_javascript %}
+    {{ block.super }}
+    <script>
+        (function () {
+            const parseJsonScript = (elementId) => {
+                const element = document.getElementById(elementId);
+                if (!element) {
+                    return [];
+                }
+                try {
+                    return JSON.parse(element.textContent || "[]");
+                } catch (err) {
+                    return [];
+                }
+            };
+
+            const numberFormatter = new Intl.NumberFormat(undefined, {
+                maximumFractionDigits: 0,
+            });
+
+            const chartThemes = {
+                income: {
+                    total: "rgba(88, 166, 255, 0.95)",
+                    fill: "rgba(88, 166, 255, 0.10)",
+                    breakoutHue: 208,
+                },
+                expenses: {
+                    total: "rgba(255, 123, 114, 0.95)",
+                    fill: "rgba(255, 123, 114, 0.10)",
+                    breakoutHue: 6,
+                },
+                subsidy: {
+                    total: "rgba(74, 222, 128, 0.92)",
+                    fill: "rgba(74, 222, 128, 0.12)",
+                    breakoutHue: 140,
+                },
+            };
+
+            const getBreakoutColor = (themeKey, index) => {
+                const baseHue = (chartThemes[themeKey] || chartThemes.income).breakoutHue;
+                const hue = (baseHue + index * 29) % 360;
+                return `hsla(${hue}, 72%, 62%, 0.92)`;
+            };
+
+            const renderLegend = (legend, seriesList) => {
+                if (!legend) {
+                    return;
+                }
+
+                legend.innerHTML = "";
+                seriesList.forEach((series) => {
+                    const item = document.createElement("span");
+                    item.className = "dashboard-chart-legend-item";
+
+                    const swatch = document.createElement("span");
+                    swatch.className = "dashboard-chart-swatch";
+                    swatch.style.background = series.color;
+                    item.appendChild(swatch);
+
+                    const label = document.createElement("span");
+                    label.textContent = series.label;
+                    item.appendChild(label);
+
+                    legend.appendChild(item);
+                });
+            };
+
+            const createTrendChart = (config) => {
+                const canvas = document.getElementById(config.canvasId);
+                if (!canvas) {
+                    return;
+                }
+
+                const stage = canvas.closest(".dashboard-chart-stage");
+                const shell = canvas.closest(".dashboard-chart-shell");
+                const tooltip = stage ? stage.querySelector(".dashboard-chart-tooltip") : null;
+                const emptyState = stage ? stage.querySelector(".dashboard-empty") : null;
+                const toggle = config.toggleSelector ? document.querySelector(config.toggleSelector) : null;
+                const legend = config.legendSelector ? document.querySelector(config.legendSelector) : null;
+
+                const totalData = parseJsonScript(config.dataId);
+                const breakoutData = parseJsonScript(config.breakoutId);
+                const theme = chartThemes[config.theme] || chartThemes.income;
+                const totalLabel = canvas.dataset.totalLabel || "Total";
+
+                const totalSeries = [
+                    {
+                        key: "total",
+                        label: totalLabel,
+                        color: theme.total,
+                        fill: theme.fill,
+                        width: 3,
+                        points: totalData,
+                    },
+                ];
+
+                const breakoutSeries = breakoutData.map((series, index) => ({
+                    ...series,
+                    color: getBreakoutColor(config.theme, index),
+                    fill: "",
+                    width: 2,
+                }));
+
+                let mode = "total";
+                let hoverIndex = null;
+
+                if (toggle && !breakoutSeries.length) {
+                    toggle.classList.add("d-none");
+                }
+
+                const getActiveSeries = () => {
+                    if (mode === "breakout" && breakoutSeries.length) {
+                        return breakoutSeries;
+                    }
+                    return totalSeries;
+                };
+
+                const updateToggleLabel = () => {
+                    if (!toggle) {
+                        return;
+                    }
+                    const breakoutLabel = toggle.dataset.toggleBreakout || "Break out by ref type";
+                    const totalModeLabel = toggle.dataset.toggleTotal || "Show total";
+                    toggle.textContent = mode === "total" ? breakoutLabel : totalModeLabel;
+                };
+
+                const formatAxisDate = (valueCount) => {
+                    const options = {
+                        month: "short",
+                        day: "numeric",
+                    };
+                    if (valueCount > 180) {
+                        options.year = "numeric";
+                    }
+                    return new Intl.DateTimeFormat(undefined, options);
+                };
+
+                const tooltipDateFormatter = new Intl.DateTimeFormat(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                });
+
+                const hideTooltip = () => {
+                    if (tooltip) {
+                        tooltip.classList.add("d-none");
+                    }
+                };
+
+                const draw = () => {
+                    if (!stage || !shell) {
+                        return;
+                    }
+
+                    const activeSeries = getActiveSeries();
+                    const primarySeries = activeSeries[0];
+                    const pointCount = primarySeries && primarySeries.points ? primarySeries.points.length : 0;
+                    const usefulValues = activeSeries
+                        .flatMap((series) => (series.points || []).map((point) => Number(point.total) || 0))
+                        .filter((value) => value > 0);
+
+                    renderLegend(legend, activeSeries);
+
+                    if (!pointCount || !usefulValues.length) {
+                        if (emptyState) {
+                            emptyState.classList.remove("d-none");
+                        }
+                        const context = canvas.getContext("2d");
+                        if (context) {
+                            context.clearRect(0, 0, canvas.width, canvas.height);
+                        }
+                        hideTooltip();
+                        return;
+                    }
+
+                    if (emptyState) {
+                        emptyState.classList.add("d-none");
+                    }
+
+                    const width = Math.max(stage.clientWidth, 320);
+                    const height = 336;
+                    const dpr = window.devicePixelRatio || 1;
+                    canvas.width = width * dpr;
+                    canvas.height = height * dpr;
+                    canvas.style.width = `${width}px`;
+                    canvas.style.height = `${height}px`;
+
+                    const ctx = canvas.getContext("2d");
+                    if (!ctx) {
+                        return;
+                    }
+
+                    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    ctx.clearRect(0, 0, width, height);
+
+                    const shellStyles = getComputedStyle(shell);
+                    const gridColor = shellStyles.getPropertyValue("--chart-grid").trim() || "rgba(230, 237, 243, 0.12)";
+                    const axisColor = shellStyles.getPropertyValue("--chart-axis").trim() || "rgba(230, 237, 243, 0.65)";
+                    const hoverLineColor = shellStyles.getPropertyValue("--chart-hover-line").trim() || "rgba(230, 237, 243, 0.22)";
+                    const markerRingColor = shellStyles.getPropertyValue("--chart-marker-ring").trim() || "rgba(15, 20, 27, 0.95)";
+
+                    const padding = { top: 16, right: 18, bottom: 34, left: 18 };
+                    const plotWidth = width - padding.left - padding.right;
+                    const plotHeight = height - padding.top - padding.bottom;
+                    const allValues = activeSeries.flatMap((series) =>
+                        (series.points || []).map((point) => Number(point.total) || 0)
+                    );
+                    const minValue = Math.min.apply(null, allValues);
+                    const maxValue = Math.max.apply(null, allValues);
+                    const valueSpan = Math.max(maxValue - minValue, 1);
+                    const bottomValue = minValue > 0 ? Math.max(0, minValue - valueSpan * 0.12) : minValue - valueSpan * 0.08;
+                    const topValue = maxValue + valueSpan * 0.12;
+
+                    const xForIndex = (index) => {
+                        if (pointCount === 1) {
+                            return padding.left + plotWidth / 2;
+                        }
+                        return padding.left + (plotWidth * index) / (pointCount - 1);
+                    };
+
+                    const yForValue = (value) => {
+                        return padding.top + ((topValue - value) / Math.max(topValue - bottomValue, 1)) * plotHeight;
+                    };
+
+                    const plottedSeries = activeSeries.map((series) => ({
+                        ...series,
+                        plottedPoints: (series.points || []).map((point, index) => ({
+                            x: xForIndex(index),
+                            y: yForValue(Number(point.total) || 0),
+                            value: Number(point.total) || 0,
+                            date: point.date,
+                        })),
+                    }));
+
+                    ctx.strokeStyle = gridColor;
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < 4; i += 1) {
+                        const y = padding.top + (plotHeight * i) / 3;
+                        ctx.beginPath();
+                        ctx.moveTo(padding.left, y);
+                        ctx.lineTo(width - padding.right, y);
+                        ctx.stroke();
+                    }
+
+                    ctx.font = "12px Segoe UI, sans-serif";
+                    ctx.fillStyle = axisColor;
+                    ctx.textAlign = "center";
+
+                    const dateFormatter = formatAxisDate(pointCount);
+                    const maxVisibleLabels = Math.max(2, Math.floor(plotWidth / 96));
+                    const labelStep = Math.max(1, Math.ceil(pointCount / maxVisibleLabels));
+                    primarySeries.points.forEach((point, index) => {
+                        const isLastLabel = index === pointCount - 1;
+                        if (!isLastLabel && index % labelStep !== 0) {
+                            return;
+                        }
+                        ctx.fillText(dateFormatter.format(new Date(point.date)), xForIndex(index), height - 10);
+                    });
+
+                    plottedSeries.forEach((series) => {
+                        const validPoints = series.plottedPoints.filter(Boolean);
+                        if (!validPoints.length) {
+                            return;
+                        }
+
+                        if (series.fill) {
+                            ctx.beginPath();
+                            ctx.moveTo(validPoints[0].x, padding.top + plotHeight);
+                            validPoints.forEach((point) => {
+                                ctx.lineTo(point.x, point.y);
+                            });
+                            ctx.lineTo(validPoints[validPoints.length - 1].x, padding.top + plotHeight);
+                            ctx.closePath();
+                            ctx.fillStyle = series.fill;
+                            ctx.fill();
+                        }
+
+                        ctx.beginPath();
+                        validPoints.forEach((point, index) => {
+                            if (index === 0) {
+                                ctx.moveTo(point.x, point.y);
+                            } else {
+                                ctx.lineTo(point.x, point.y);
+                            }
+                        });
+                        ctx.strokeStyle = series.color;
+                        ctx.lineWidth = series.width || 2;
+                        ctx.stroke();
+
+                        validPoints.forEach((point) => {
+                            ctx.beginPath();
+                            ctx.arc(point.x, point.y, (series.width || 2) >= 3 ? 4 : 3, 0, Math.PI * 2);
+                            ctx.fillStyle = series.color;
+                            ctx.fill();
+                            ctx.strokeStyle = markerRingColor;
+                            ctx.lineWidth = 1.5;
+                            ctx.stroke();
+                        });
+                    });
+
+                    if (hoverIndex === null || hoverIndex < 0 || hoverIndex >= pointCount) {
+                        hideTooltip();
+                        return;
+                    }
+
+                    const hoveredPrimaryPoint = plottedSeries[0].plottedPoints[hoverIndex];
+                    ctx.beginPath();
+                    ctx.moveTo(hoveredPrimaryPoint.x, padding.top);
+                    ctx.lineTo(hoveredPrimaryPoint.x, padding.top + plotHeight);
+                    ctx.strokeStyle = hoverLineColor;
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    plottedSeries.forEach((series) => {
+                        const hoveredPoint = series.plottedPoints[hoverIndex];
+                        ctx.beginPath();
+                        ctx.arc(hoveredPoint.x, hoveredPoint.y, (series.width || 2) >= 3 ? 5 : 4, 0, Math.PI * 2);
+                        ctx.fillStyle = series.color;
+                        ctx.fill();
+                        ctx.strokeStyle = markerRingColor;
+                        ctx.lineWidth = 1.75;
+                        ctx.stroke();
+                    });
+
+                    if (!tooltip) {
+                        return;
+                    }
+
+                    if (mode === "breakout" && plottedSeries.length > 1) {
+                        const items = plottedSeries
+                            .map((series) => ({
+                                label: series.label,
+                                value: series.plottedPoints[hoverIndex].value,
+                                color: series.color,
+                            }))
+                            .sort((a, b) => b.value - a.value);
+
+                        const listMarkup = items.map((item) =>
+                            `<div class="finances-tooltip-item"><span class="finances-tooltip-dot" style="background:${item.color}"></span>${item.label}: ${numberFormatter.format(item.value)} ISK</div>`
+                        ).join("");
+
+                        tooltip.innerHTML = `<div>${tooltipDateFormatter.format(new Date(hoveredPrimaryPoint.date))}</div><div class="finances-tooltip-list">${listMarkup}</div>`;
+                    } else {
+                        tooltip.textContent = `${tooltipDateFormatter.format(new Date(hoveredPrimaryPoint.date))} - ${numberFormatter.format(hoveredPrimaryPoint.value)} ISK`;
+                    }
+
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const stageRect = stage.getBoundingClientRect();
+                    const left = (hoveredPrimaryPoint.x / width) * canvasRect.width + (canvasRect.left - stageRect.left);
+                    const top = (hoveredPrimaryPoint.y / height) * canvasRect.height + (canvasRect.top - stageRect.top);
+                    tooltip.style.left = `${left}px`;
+                    tooltip.style.top = `${top}px`;
+                    tooltip.classList.remove("d-none");
+                };
+
+                const handlePointerMove = (event) => {
+                    const activeSeries = getActiveSeries();
+                    const pointCount = activeSeries[0] && activeSeries[0].points ? activeSeries[0].points.length : 0;
+                    if (!pointCount) {
+                        return;
+                    }
+
+                    const rect = canvas.getBoundingClientRect();
+                    const relativeX = (event.clientX - rect.left) / rect.width;
+                    hoverIndex = pointCount > 1
+                        ? Math.max(0, Math.min(pointCount - 1, Math.round(relativeX * (pointCount - 1))))
+                        : 0;
+                    draw();
+                };
+
+                const clearHover = () => {
+                    hoverIndex = null;
+                    draw();
+                };
+
+                canvas.addEventListener("mousemove", handlePointerMove);
+                canvas.addEventListener("mouseleave", clearHover);
+
+                if (toggle) {
+                    toggle.addEventListener("click", () => {
+                        if (!breakoutSeries.length) {
+                            return;
+                        }
+                        mode = mode === "total" ? "breakout" : "total";
+                        hoverIndex = null;
+                        updateToggleLabel();
+                        draw();
+                    });
+                }
+
+                let resizeFrame = null;
+                const redrawOnResize = () => {
+                    if (resizeFrame) {
+                        window.cancelAnimationFrame(resizeFrame);
+                    }
+                    resizeFrame = window.requestAnimationFrame(draw);
+                };
+
+                window.addEventListener("resize", redrawOnResize);
+                updateToggleLabel();
+                draw();
+            };
+
+            document.addEventListener("DOMContentLoaded", function () {
+                [
+                    {
+                        canvasId: "incomeTrendChart",
+                        dataId: "income-series-data",
+                        breakoutId: "income-series-by-ref-data",
+                        toggleSelector: '[data-chart-toggle="income"]',
+                        legendSelector: '[data-legend="income"]',
+                        theme: "income",
+                    },
+                    {
+                        canvasId: "expenseTrendChart",
+                        dataId: "expense-series-data",
+                        breakoutId: "expense-series-by-ref-data",
+                        toggleSelector: '[data-chart-toggle="expenses"]',
+                        legendSelector: '[data-legend="expenses"]',
+                        theme: "expenses",
+                    },
+                    {
+                        canvasId: "subsidyTrendChart",
+                        dataId: "subsidy-series-data",
+                        breakoutId: null,
+                        toggleSelector: null,
+                        legendSelector: '[data-legend="subsidy"]',
+                        theme: "subsidy",
+                    },
+                ].forEach(createTrendChart);
+
+                const updateSelectedList = (select, list, badgeClass, emptyText) => {
+                    list.innerHTML = "";
+                    const selected = Array.from(select.selectedOptions);
+                    if (!selected.length) {
+                        const empty = document.createElement("span");
+                        empty.className = "finances-selected__empty";
+                        empty.textContent = emptyText;
+                        list.appendChild(empty);
+                        return;
+                    }
+
+                    selected.forEach((option) => {
+                        const badge = document.createElement("span");
+                        badge.className = `badge ${badgeClass}`;
+                        badge.textContent = option.textContent.trim();
+                        list.appendChild(badge);
+                    });
+                };
+
+                document.querySelectorAll(".finances-selected[data-selected-list]").forEach((container) => {
+                    const selectId = container.getAttribute("data-selected-list");
+                    const badgeClass = container.getAttribute("data-badge-class") || "bg-secondary-subtle";
+                    const emptyText = container.getAttribute("data-empty-text") || "None";
+                    const select = document.getElementById(selectId);
+                    const list = container.querySelector(".finances-selected__list");
+                    if (!select || !list) {
+                        return;
+                    }
+
+                    const render = () => updateSelectedList(select, list, badgeClass, emptyText);
+                    render();
+                    select.addEventListener("change", render);
+                });
+
+                document.querySelectorAll(".finances-drill-row[data-drill]").forEach((row) => {
+                    const handleDrill = () => {
+                        const drillType = row.getAttribute("data-drill");
+                        const refType = row.getAttribute("data-ref-type");
+                        const divisionId = row.getAttribute("data-division-id");
+                        if (!drillType) {
+                            return;
+                        }
+
+                        const params = new URLSearchParams(window.location.search);
+                        params.set("drill", drillType);
+
+                        if (drillType === "income_ref" || drillType === "expense_ref") {
+                            if (refType) {
+                                params.set("ref_type", refType);
+                            }
+                            params.delete("division_id");
+                        } else if (drillType === "division") {
+                            if (divisionId) {
+                                params.set("division_id", divisionId);
+                            }
+                            params.delete("ref_type");
+                        }
+
+                        const query = params.toString();
+                        const url = `${window.location.pathname}?${query}#drilldownModal`;
+                        window.location.assign(url);
+                    };
+
+                    row.addEventListener("click", handleDrill);
+                    row.addEventListener("keypress", (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            handleDrill();
+                        }
+                    });
+                    row.setAttribute("tabindex", "0");
+                    row.setAttribute("role", "button");
+                    row.setAttribute("title", "View transactions");
+                });
+
+                const drilldownModal = document.getElementById("drilldownModal");
+                if (drilldownModal && window.bootstrap && window.bootstrap.Modal) {
+                    const modal = new window.bootstrap.Modal(drilldownModal);
+                    modal.show();
+                }
+            });
+        })();
+    </script>
 {% endblock %}
 
 {% block extra_css %}
+    {{ block.super }}
     <style>
-        .finances-table-centered th,
-        .finances-table-centered td {
-            text-align: center;
-            vertical-align: middle;
+        .finances-stats-dashboard {
+            --bb-card-bg: rgba(var(--bs-body-color-rgb), 0.04);
+            --bb-card-border: var(--bs-border-color);
+            --bb-card-highlight: rgba(var(--bs-primary-rgb), 0.12);
+            --bb-card-highlight-border: rgba(var(--bs-primary-rgb), 0.3);
+            --bb-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
         }
-        .finances-select {
-            background-color: var(--bs-body-bg);
+
+        .finances-dashboard {
+            display: grid;
+            gap: 1.5rem;
         }
-        .finances-select option {
+
+        .finances-dashboard-card {
+            border: 1px solid var(--bb-card-border);
+            background:
+                radial-gradient(circle at top right, rgba(var(--bs-primary-rgb), 0.08), transparent 32%),
+                linear-gradient(180deg, rgba(var(--bs-body-color-rgb), 0.03), rgba(var(--bs-body-color-rgb), 0.015));
             color: var(--bs-body-color);
+            box-shadow: var(--bb-shadow);
+            overflow: hidden;
         }
-        .finances-select option:checked {
-            background-color: var(--bs-secondary-bg-subtle);
-            color: var(--bs-body-color);
+
+        .finances-dashboard-card .card-body {
+            position: relative;
         }
-        .finances-select--income option:checked {
-            background-color: var(--bs-primary-bg-subtle);
+
+        .finances-dashboard-card .card-body::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.03), transparent 35%, transparent 70%, rgba(var(--bs-info-rgb), 0.03));
+            pointer-events: none;
         }
-        .finances-select--expense option:checked {
-            background-color: var(--bs-danger-bg-subtle);
+
+        .finances-dashboard-inner {
+            position: relative;
+            z-index: 1;
         }
-        .finances-selected {
-            margin-top: 0.5rem;
-        }
-        .finances-selected__list {
+
+        .dashboard-hero {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.25rem;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1.5rem;
         }
-        .finances-selected__empty {
-            font-size: 0.75rem;
+
+        .dashboard-kicker,
+        .stats-panel-kicker,
+        .stats-tile-label,
+        .dashboard-chip-label,
+        .usage-metric-label,
+        .table-metric-label,
+        .chart-summary-item-label,
+        .dashboard-table thead th,
+        .finances-selected__label {
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
             color: var(--bs-secondary-color);
         }
-        .finances-drill-row {
-            cursor: pointer;
+
+        .dashboard-title {
+            margin: 0;
+            font-size: clamp(2rem, 3vw, 2.8rem);
+            font-weight: 700;
+            line-height: 1.05;
+            color: inherit;
         }
-        .finances-drill-row:hover {
-            background-color: var(--bs-secondary-bg-subtle);
+
+        .dashboard-subtitle {
+            max-width: 58rem;
+            margin-top: 0.85rem;
+            color: var(--bs-secondary-color);
+            font-size: 1rem;
         }
-        .finances-chart-controls {
+
+        .dashboard-hero-actions {
             display: flex;
             flex-wrap: wrap;
-            align-items: center;
-            gap: 0.75rem;
             justify-content: flex-end;
+            gap: 0.75rem;
         }
-        .finances-legend {
+
+        .dashboard-chip-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 0.65rem;
+            margin-top: 1.25rem;
+        }
+
+        .dashboard-chip {
+            display: inline-flex;
             align-items: center;
-            font-size: 0.85rem;
+            gap: 0.45rem;
+            padding: 0.5rem 0.8rem;
+            border-radius: 999px;
+            border: 1px solid var(--bb-card-border);
+            background: var(--bb-card-bg);
+            color: inherit;
+            font-size: 0.88rem;
+        }
+
+        .dashboard-tiles-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.9rem;
+            margin-top: 1.5rem;
+        }
+
+        .stats-tile,
+        .stats-panel,
+        .dashboard-table-card,
+        .drilldown-modal .modal-content {
+            height: 100%;
+            padding: 1rem 1.1rem;
+            border: 1px solid var(--bb-card-border);
+            border-radius: 1rem;
+            background: var(--bb-card-bg);
+            color: inherit;
+        }
+
+        .stats-tile {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-tile::after {
+            content: "";
+            position: absolute;
+            inset: auto -1.4rem -1.8rem auto;
+            width: 6rem;
+            height: 6rem;
+            border-radius: 999px;
+            background: rgba(var(--bs-primary-rgb), 0.08);
+            pointer-events: none;
+        }
+
+        .stats-tile-value {
+            margin-top: 0.55rem;
+            font-size: clamp(1.45rem, 2vw, 2rem);
+            font-weight: 700;
+            color: inherit;
+        }
+
+        .stats-tile-meta,
+        .stats-panel-subtitle,
+        .dashboard-table-subtitle,
+        .dashboard-control-note,
+        .chart-summary-item-note,
+        .usage-metric-meta,
+        .division-overview-subtitle,
+        .division-overview-balance,
+        .dashboard-table-muted,
+        .finances-selected__empty {
             color: var(--bs-secondary-color);
         }
-        .finances-legend__item {
+
+        .stats-panel-header,
+        .dashboard-table-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.85rem;
+        }
+
+        .stats-panel-title,
+        .dashboard-table-title {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: inherit;
+        }
+
+        .dashboard-control-grid,
+        .dashboard-panels-grid,
+        .dashboard-summary-grid,
+        .dashboard-filter-grid,
+        .usage-metric-layout,
+        .usage-metric-stack,
+        .table-metric-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .dashboard-control-grid {
+            grid-template-columns: minmax(0, 1.3fr) minmax(20rem, 0.9fr);
+        }
+
+        .dashboard-panels-grid--charts {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .dashboard-summary-grid--finance {
+            grid-template-columns: minmax(20rem, 0.85fr) minmax(0, 1.25fr);
+        }
+
+        .dashboard-filter-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .dashboard-field--wide,
+        .dashboard-actions {
+            grid-column: 1 / -1;
+        }
+
+        .dashboard-field,
+        .usage-metric-item,
+        .table-metric-item,
+        .dashboard-note-item {
+            padding: 0.8rem 0.9rem;
+            border-radius: 0.85rem;
+            border: 1px solid var(--bb-card-border);
+            background: rgba(var(--bs-body-color-rgb), 0.035);
+            color: inherit;
+        }
+
+        .usage-metric-layout {
+            grid-template-columns: minmax(0, 1fr) minmax(11rem, 0.9fr);
+            align-items: stretch;
+        }
+
+        .usage-metric-stack {
+            gap: 0.7rem;
+        }
+
+        .usage-metric-item-compact,
+        .table-metric-item-compact {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .usage-metric-item-highlight {
+            background: var(--bb-card-highlight);
+            border-color: var(--bb-card-highlight-border);
+        }
+
+        .usage-metric-item-feature {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .usage-metric-value,
+        .table-metric-value,
+        .chart-summary-item-value {
+            display: block;
+            margin-top: 0.2rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: inherit;
+        }
+
+        .usage-metric-item-feature .usage-metric-value {
+            font-size: clamp(1.35rem, 2vw, 1.9rem);
+        }
+
+        .table-metric-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.7rem;
+        }
+
+        .chart-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .chart-summary-item {
+            padding: 0.85rem 0.9rem;
+            border: 1px solid var(--bb-card-border);
+            border-radius: 0.85rem;
+            background: rgba(var(--bs-body-color-rgb), 0.035);
+        }
+
+        .dashboard-chart-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .dashboard-chart-shell {
+            padding: 1rem 1.05rem;
+            border-radius: 0.95rem;
+            border: 1px solid var(--bb-card-border);
+            background: rgba(var(--bs-body-color-rgb), 0.03);
+            --chart-grid: rgba(var(--bs-body-color-rgb), 0.12);
+            --chart-axis: rgba(var(--bs-body-color-rgb), 0.65);
+            --chart-hover-line: rgba(var(--bs-body-color-rgb), 0.28);
+            --chart-marker-ring: var(--bs-body-bg);
+        }
+
+        .dashboard-chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem 1rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .dashboard-chart-legend-item {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            font-size: 0.86rem;
+            color: var(--bs-secondary-color);
         }
-        .finances-legend__swatch {
-            width: 12px;
-            height: 12px;
+
+        .dashboard-chart-swatch {
+            width: 0.85rem;
+            height: 0.85rem;
             border-radius: 999px;
-            border: 1px solid var(--bs-border-color);
-            background: var(--bs-primary);
+            flex: 0 0 auto;
         }
-        .finances-legend__swatch[data-theme="expenses"] {
-            background: var(--bs-danger);
-        }
-        .finances-legend__swatch[data-theme="income"] {
-            background: var(--bs-primary);
-        }
-        .finances-line-chart {
+
+        .dashboard-chart-stage {
             position: relative;
             width: 100%;
-            height: 440px;
-            background: var(--bs-body-bg);
-            border: 1px solid var(--bs-border-color);
-            border-radius: 0.375rem;
-            padding: 0.5rem;
-            --chart-line: var(--bs-primary);
-            --chart-fill: var(--bs-primary-bg-subtle);
+            min-height: 21rem;
         }
-        .finances-line-chart[data-theme="expenses"] {
-            --chart-line: var(--bs-danger);
-            --chart-fill: var(--bs-danger-bg-subtle);
-        }
-        .finances-line-chart svg {
+
+        .dashboard-chart-canvas {
+            display: block;
             width: 100%;
-            height: 100%;
+            height: 21rem;
         }
-        .finances-line-chart__line {
-            fill: none;
-            stroke: var(--chart-line);
-            stroke-width: 2;
-        }
-        .finances-line-chart__series-line {
-            fill: none;
-            stroke-width: 1.6;
-            opacity: 0.9;
-        }
-        .finances-line-chart__area {
-            fill: var(--chart-fill);
-            opacity: 0.45;
-        }
-        .finances-line-chart.is-breakout .finances-line-chart__area,
-        .finances-line-chart.is-breakout .finances-line-chart__line {
-            display: none;
-        }
-        .finances-line-chart__grid-line {
-            stroke: var(--bs-border-color);
-            stroke-dasharray: 3 3;
-        }
-        .finances-line-chart__axis text {
-            fill: var(--bs-secondary-color);
-            font-size: 10px;
-        }
-        .finances-line-chart__hover-line {
-            stroke: var(--bs-secondary-color);
-            stroke-width: 1;
-            stroke-dasharray: 4 4;
-            opacity: 0;
-        }
-        .finances-line-chart__hover-point {
-            fill: var(--chart-line);
-            stroke: var(--bs-body-bg);
-            stroke-width: 1.5;
-            opacity: 0;
-        }
-        .finances-line-chart [data-hover-points] circle {
-            stroke: var(--bs-body-bg);
-            stroke-width: 1.5;
-        }
-        .finances-line-chart__tooltip {
+
+        .dashboard-chart-tooltip {
             position: absolute;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            background: var(--bs-body-bg);
-            border: 1px solid var(--bs-border-color);
-            font-size: 0.75rem;
+            padding: 0.4rem 0.55rem;
+            border-radius: 0.8rem;
+            background: rgba(var(--bs-body-bg-rgb), 0.96);
+            border: 1px solid var(--bb-card-border);
+            font-size: 0.76rem;
             color: var(--bs-body-color);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
             pointer-events: none;
-            transform: translate(-50%, -120%);
+            transform: translate(-50%, calc(-100% - 12px));
             white-space: nowrap;
+            z-index: 3;
         }
+
+        .dashboard-empty {
+            padding: 1rem;
+            border-radius: 0.9rem;
+            border: 1px dashed var(--bb-card-border);
+            color: var(--bs-secondary-color);
+            text-align: center;
+        }
+
+        .dashboard-chart-stage .dashboard-empty {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(var(--bs-body-bg-rgb), 0.94);
+        }
+
         .finances-tooltip-list {
             display: flex;
             flex-direction: column;
             gap: 0.15rem;
             margin-top: 0.25rem;
         }
+
         .finances-tooltip-item {
             display: flex;
             align-items: center;
             gap: 0.35rem;
         }
+
         .finances-tooltip-dot {
             width: 8px;
             height: 8px;
             border-radius: 999px;
             flex-shrink: 0;
         }
-        .finances-line-chart__empty {
-            position: absolute;
-            inset: 0;
+
+        .dashboard-table {
+            margin: 0;
+            color: inherit;
+        }
+
+        .dashboard-table thead th {
+            padding: 0.95rem 0.85rem;
+            background: rgba(var(--bs-body-color-rgb), 0.05);
+            border-bottom-width: 1px;
+            vertical-align: middle;
+        }
+
+        .dashboard-table tbody td {
+            padding: 0.95rem 0.85rem;
+            vertical-align: middle;
+            border-color: rgba(var(--bs-border-color-rgb), 0.65);
+        }
+
+        .dashboard-table tbody tr:hover > * {
+            background: rgba(var(--bs-body-color-rgb), 0.025);
+        }
+
+        .dashboard-table-strong,
+        .reference-total,
+        .division-overview-title {
+            font-weight: 700;
+        }
+
+        .dashboard-note-list {
+            display: grid;
+            gap: 0.75rem;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .dashboard-note-item {
             display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .dashboard-note-icon {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 999px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            padding: 1rem;
+            background: rgba(var(--bs-primary-rgb), 0.14);
+            color: var(--bs-primary);
+            flex: 0 0 auto;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .dashboard-field .form-label {
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .dashboard-field .form-control,
+        .dashboard-field .form-select {
+            border-color: var(--bb-card-border);
             background: var(--bs-body-bg);
+            color: inherit;
+        }
+
+        .finances-select {
+            background-color: var(--bs-body-bg);
+            min-height: 11.5rem;
+        }
+
+        .finances-select option {
+            color: var(--bs-body-color);
+        }
+
+        .finances-select option:checked {
+            background-color: var(--bs-secondary-bg-subtle);
+            color: var(--bs-body-color);
+        }
+
+        .finances-select--income option:checked {
+            background-color: var(--bs-primary-bg-subtle);
+        }
+
+        .finances-select--expense option:checked {
+            background-color: var(--bs-danger-bg-subtle);
+        }
+
+        .finances-selected {
+            margin-top: 0.65rem;
+            padding: 0.75rem;
+            border: 1px solid var(--bb-card-border);
+            border-radius: 0.85rem;
+            background: rgba(var(--bs-body-color-rgb), 0.03);
+        }
+
+        .finances-selected__list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .dashboard-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .division-overview-list {
+            display: grid;
+            gap: 0.7rem;
+            max-height: 38rem;
+            overflow-y: auto;
+        }
+
+        .division-overview-item {
+            padding: 0.9rem;
+            border: 1px solid var(--bb-card-border);
+            border-radius: 0.85rem;
+            background: rgba(var(--bs-body-color-rgb), 0.035);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.85rem;
+            align-items: center;
+        }
+
+        .division-overview-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.2rem;
+            text-align: right;
+            font-weight: 700;
+        }
+
+        .finances-drill-row {
+            cursor: pointer;
+        }
+
+        .finances-drill-row:focus-visible {
+            outline: 2px solid rgba(var(--bs-primary-rgb), 0.35);
+            outline-offset: 2px;
+        }
+
+        .value-positive {
+            color: var(--bs-success-text-emphasis);
+        }
+
+        .value-negative {
+            color: var(--bs-danger-text-emphasis);
+        }
+
+        .value-neutral {
+            color: inherit;
+        }
+
+        .drilldown-modal .modal-header,
+        .drilldown-modal .modal-footer {
+            border-color: var(--bb-card-border);
+            background: rgba(var(--bs-body-color-rgb), 0.03);
+        }
+
+        .drilldown-table {
+            min-width: 1200px;
+        }
+
+        .finances-stats-dashboard .btn-outline-light {
+            --bs-btn-color: var(--bs-body-color);
+            --bs-btn-border-color: rgba(var(--bs-body-color-rgb), 0.15);
+            --bs-btn-hover-color: var(--bs-body-bg);
+            --bs-btn-hover-bg: var(--bs-body-color);
+            --bs-btn-hover-border-color: var(--bs-body-color);
+        }
+
+        @media (max-width: 1399.98px) {
+            .dashboard-tiles-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 1199.98px) {
+            .dashboard-control-grid,
+            .dashboard-summary-grid--finance {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            .dashboard-tiles-grid,
+            .dashboard-panels-grid--charts,
+            .dashboard-filter-grid,
+            .usage-metric-layout,
+            .table-metric-grid,
+            .chart-summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-hero-actions {
+                justify-content: flex-start;
+            }
+
+            .dashboard-chart-canvas {
+                height: 19rem;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .finances-dashboard-card .card-body {
+                padding: 1.25rem;
+            }
+
+            .stats-tile,
+            .stats-panel,
+            .dashboard-table-card {
+                padding: 0.9rem;
+            }
+
+            .dashboard-chart-shell {
+                padding: 0.85rem;
+            }
+
+            .dashboard-chip {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .dashboard-actions {
+                align-items: stretch;
+            }
+
+            .dashboard-actions .btn {
+                width: 100%;
+            }
         }
     </style>
-{% endblock %}
-
-{% block extra_script %}
-    (function () {
-        const charts = [
-            {
-                dataId: "income-series-data",
-                breakoutId: "income-series-by-ref-data",
-                selector: '[data-chart="income"]',
-                toggleSelector: '[data-chart-toggle="income"]',
-                legendSelector: '[data-legend="income"]',
-            },
-            {
-                dataId: "expense-series-data",
-                breakoutId: "expense-series-by-ref-data",
-                selector: '[data-chart="expenses"]',
-                toggleSelector: '[data-chart-toggle="expenses"]',
-                legendSelector: '[data-legend="expenses"]',
-            },
-        ];
-
-        const numberFormatter = new Intl.NumberFormat(undefined, {
-            maximumFractionDigits: 0,
-        });
-        const axisNumberFormatter = new Intl.NumberFormat(undefined, {
-            maximumFractionDigits: 1,
-        });
-
-        const getSeriesColor = (key, index, baseHue) => {
-            const hue = (baseHue + index * 37) % 360;
-            return `hsl(${hue}, 70%, 45%)`;
-        };
-
-        const renderLegend = (legend, seriesList) => {
-            if (!legend) {
-                return;
-            }
-            legend.innerHTML = "";
-            seriesList.forEach((series) => {
-                const item = document.createElement("span");
-                item.className = "finances-legend__item";
-                const swatch = document.createElement("span");
-                swatch.className = "finances-legend__swatch";
-                swatch.style.background = series.color;
-                item.appendChild(swatch);
-                const label = document.createElement("span");
-                label.textContent = series.label;
-                item.appendChild(label);
-                legend.appendChild(item);
-            });
-        };
-
-        const renderChart = (chart, seriesList, mode) => {
-            const emptyState = chart.querySelector(".finances-line-chart__empty");
-            const svg = chart.querySelector("svg");
-            const area = chart.querySelector(".finances-line-chart__area");
-            const line = chart.querySelector(".finances-line-chart__line");
-            const grid = chart.querySelector("[data-grid]");
-            const axis = chart.querySelector("[data-axis]");
-            const seriesGroup = chart.querySelector("[data-series]");
-            const hoverLine = chart.querySelector(".finances-line-chart__hover-line");
-            const hoverPoint = chart.querySelector(".finances-line-chart__hover-point");
-            const hoverPointsGroup = chart.querySelector("[data-hover-points]");
-            const tooltip = chart.querySelector(".finances-line-chart__tooltip");
-
-            if (!svg || !area || !line || !grid || !axis || !seriesGroup) {
-                return;
-            }
-
-            if (!seriesList.length || !seriesList[0].points.length) {
-                emptyState?.classList.remove("d-none");
-                return;
-            }
-
-            emptyState?.classList.add("d-none");
-
-            const values = seriesList.flatMap((series) =>
-                series.points.map((point) => Number(point.total) || 0)
-            );
-            const maxValue = Math.max(...values);
-
-            if (maxValue <= 0) {
-                emptyState?.classList.remove("d-none");
-                return;
-            }
-
-            const width = 600;
-            const height = 440;
-            const padding = {
-                top: 24,
-                right: 24,
-                bottom: 40,
-                left: 64,
-            };
-            const chartWidth = width - padding.left - padding.right;
-            const chartHeight = height - padding.top - padding.bottom;
-            const count = seriesList[0].points.length;
-            const step = count > 1 ? chartWidth / (count - 1) : 0;
-
-            const plottedSeries = seriesList.map((series) => {
-                const points = series.points.map((point, index) => {
-                    const x = padding.left + index * step;
-                    const y = padding.top + chartHeight - (point.total / maxValue) * chartHeight;
-                    return {
-                        x,
-                        y,
-                        value: point.total,
-                        date: point.date,
-                    };
-                });
-                return {
-                    ...series,
-                    points,
-                };
-            });
-
-            grid.innerHTML = "";
-            axis.innerHTML = "";
-            axis.classList.add("finances-line-chart__axis");
-
-            const ns = "http://www.w3.org/2000/svg";
-            const tickCount = 10;
-            for (let i = 0; i <= tickCount; i += 1) {
-                const y = padding.top + (chartHeight / tickCount) * i;
-                const value = Math.round(maxValue * (1 - i / tickCount));
-                const gridLine = document.createElementNS(ns, "line");
-                gridLine.setAttribute("x1", padding.left);
-                gridLine.setAttribute("x2", width - padding.right);
-                gridLine.setAttribute("y1", y);
-                gridLine.setAttribute("y2", y);
-                gridLine.setAttribute("class", "finances-line-chart__grid-line");
-                grid.appendChild(gridLine);
-
-                const label = document.createElementNS(ns, "text");
-                label.setAttribute("x", padding.left - 6);
-                label.setAttribute("y", y + 4);
-                label.setAttribute("text-anchor", "end");
-                const valueMillions = value / 1000000;
-                label.textContent = `${axisNumberFormatter.format(valueMillions)}M`;
-                axis.appendChild(label);
-            }
-
-            const axisLabel = document.createElementNS(ns, "text");
-            axisLabel.setAttribute("x", padding.left);
-            axisLabel.setAttribute("y", padding.top - 8);
-            axisLabel.setAttribute("text-anchor", "start");
-            axisLabel.textContent = "ISK (M)";
-            axis.appendChild(axisLabel);
-
-            const includeYear = count > 180;
-            const dateFormatterOptions = {
-                month: "short",
-                day: "numeric",
-            };
-            if (includeYear) {
-                dateFormatterOptions.year = "numeric";
-            }
-            const dateFormatter = new Intl.DateTimeFormat(undefined, dateFormatterOptions);
-            const tooltipDateFormatter = new Intl.DateTimeFormat(undefined, {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-            });
-
-            const xTickCount = 15;
-            const tickIndexes = Array.from(new Set(
-                Array.from({ length: xTickCount + 1 }, (_, idx) =>
-                    Math.round((count - 1) * (idx / xTickCount))
-                )
-            )).sort((a, b) => a - b);
-
-            tickIndexes.forEach((index) => {
-                const point = plottedSeries[0].points[index];
-                const label = document.createElementNS(ns, "text");
-                label.setAttribute("x", point.x);
-                label.setAttribute("y", height - 8);
-                label.setAttribute("text-anchor", "middle");
-                label.textContent = dateFormatter.format(new Date(point.date));
-                axis.appendChild(label);
-            });
-
-            seriesGroup.innerHTML = "";
-            if (hoverLine) {
-                hoverLine.style.opacity = "0";
-            }
-            if (hoverPoint) {
-                hoverPoint.style.opacity = "0";
-            }
-            if (hoverPointsGroup) {
-                hoverPointsGroup.innerHTML = "";
-            }
-            if (mode === "breakout") {
-                chart.classList.add("is-breakout");
-                area.setAttribute("d", "");
-                line.setAttribute("d", "");
-                plottedSeries.forEach((series) => {
-                    const path = document.createElementNS(ns, "path");
-                    path.setAttribute("class", "finances-line-chart__series-line");
-                    path.setAttribute("stroke", series.color);
-                    const pathDef = series.points
-                        .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
-                        .join(" ");
-                    path.setAttribute("d", pathDef);
-                    seriesGroup.appendChild(path);
-                });
-                if (hoverPoint) {
-                    hoverPoint.style.display = "none";
-                }
-            } else {
-                chart.classList.remove("is-breakout");
-                if (hoverPoint) {
-                    hoverPoint.style.display = "block";
-                }
-                const totalPoints = plottedSeries[0].points;
-                const linePath = totalPoints
-                    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
-                    .join(" ");
-                const areaPath = [
-                    `M ${totalPoints[0].x} ${padding.top + chartHeight}`,
-                    ...totalPoints.map((point) => `L ${point.x} ${point.y}`),
-                    `L ${totalPoints[totalPoints.length - 1].x} ${padding.top + chartHeight}`,
-                    "Z",
-                ].join(" ");
-                area.setAttribute("d", areaPath);
-                line.setAttribute("d", linePath);
-            }
-
-            const showHover = (index) => {
-                if (!hoverLine || !tooltip) {
-                    return;
-                }
-                const primaryPoint = plottedSeries[0].points[index];
-                hoverLine.setAttribute("x1", primaryPoint.x);
-                hoverLine.setAttribute("x2", primaryPoint.x);
-                hoverLine.setAttribute("y1", padding.top);
-                hoverLine.setAttribute("y2", padding.top + chartHeight);
-                hoverLine.style.opacity = "1";
-
-                if (mode === "breakout") {
-                    if (hoverPointsGroup) {
-                        hoverPointsGroup.innerHTML = "";
-                        plottedSeries.forEach((series) => {
-                            const seriesPoint = series.points[index];
-                            const circle = document.createElementNS(ns, "circle");
-                            circle.setAttribute("cx", seriesPoint.x);
-                            circle.setAttribute("cy", seriesPoint.y);
-                            circle.setAttribute("r", "3");
-                            circle.setAttribute("fill", series.color);
-                            hoverPointsGroup.appendChild(circle);
-                        });
-                    }
-                } else if (hoverPoint) {
-                    hoverPoint.setAttribute("cx", primaryPoint.x);
-                    hoverPoint.setAttribute("cy", primaryPoint.y);
-                    hoverPoint.style.opacity = "1";
-                }
-
-                const chartRect = chart.getBoundingClientRect();
-                const svgRect = svg.getBoundingClientRect();
-                const left = (primaryPoint.x / width) * svgRect.width + (svgRect.left - chartRect.left);
-                const top = (primaryPoint.y / height) * svgRect.height + (svgRect.top - chartRect.top);
-
-                if (mode === "breakout") {
-                    const items = plottedSeries
-                        .map((series) => {
-                            const seriesPoint = series.points[index];
-                            return {
-                                label: series.label,
-                                value: seriesPoint.value,
-                                color: series.color,
-                            };
-                        })
-                        .sort((a, b) => b.value - a.value);
-
-                    const list = items
-                        .map(
-                            (item) =>
-                                `<div class="finances-tooltip-item"><span class="finances-tooltip-dot" style="background:${item.color}"></span>${item.label}: ${numberFormatter.format(item.value)} ISK</div>`
-                        )
-                        .join("");
-
-                    tooltip.innerHTML = `<div>${tooltipDateFormatter.format(new Date(primaryPoint.date))}</div><div class="finances-tooltip-list">${list}</div>`;
-                } else {
-                    tooltip.textContent = `${tooltipDateFormatter.format(new Date(primaryPoint.date))} \u2022 ${numberFormatter.format(primaryPoint.value)} ISK`;
-                }
-                tooltip.style.left = `${left}px`;
-                tooltip.style.top = `${top}px`;
-                tooltip.classList.remove("d-none");
-            };
-
-            const hideHover = () => {
-                if (hoverLine) {
-                    hoverLine.style.opacity = "0";
-                }
-                if (hoverPoint) {
-                    hoverPoint.style.opacity = "0";
-                }
-                if (hoverPointsGroup) {
-                    hoverPointsGroup.innerHTML = "";
-                }
-                if (tooltip) {
-                    tooltip.classList.add("d-none");
-                }
-            };
-
-            chart.onmousemove = (event) => {
-                const rect = svg.getBoundingClientRect();
-                const relativeX = ((event.clientX - rect.left) / rect.width) * width;
-                const clampedX = Math.max(padding.left, Math.min(width - padding.right, relativeX));
-                const index = count > 1
-                    ? Math.round(((clampedX - padding.left) / chartWidth) * (count - 1))
-                    : 0;
-                showHover(index);
-            };
-
-            chart.onmouseleave = hideHover;
-        };
-
-        const parseJsonScript = (elementId) => {
-            const element = document.getElementById(elementId);
-            if (!element) {
-                return [];
-            }
-            try {
-                return JSON.parse(element.textContent || "[]");
-            } catch (err) {
-                return [];
-            }
-        };
-
-        charts.forEach((config) => {
-            const chart = document.querySelector(config.selector);
-            const toggle = document.querySelector(config.toggleSelector);
-            const legend = document.querySelector(config.legendSelector);
-            if (!chart) {
-                return;
-            }
-
-            const totalData = parseJsonScript(config.dataId);
-            const breakoutData = parseJsonScript(config.breakoutId);
-
-            const theme = chart.dataset.theme || "income";
-            const baseHue = theme === "expenses" ? 0 : 210;
-
-            const breakoutSeries = breakoutData.map((series, index) => ({
-                ...series,
-                color: getSeriesColor(series.key, index, baseHue),
-            }));
-
-            const totalLabel = chart.dataset.totalLabel || "Total";
-            const chartLineColor = getComputedStyle(chart).getPropertyValue("--chart-line").trim() || "#0d6efd";
-            const totalSeries = [
-                {
-                    key: "total",
-                    label: totalLabel,
-                    color: chartLineColor,
-                    points: totalData,
-                },
-            ];
-
-            let mode = "total";
-
-            const updateToggleLabel = () => {
-                if (!toggle) {
-                    return;
-                }
-                const breakoutLabel = toggle.dataset.toggleBreakout || "Break out by ref type";
-                const totalLabel = toggle.dataset.toggleTotal || "Show total";
-                toggle.textContent = mode === "total" ? breakoutLabel : totalLabel;
-            };
-
-            const render = () => {
-                if (mode === "breakout" && breakoutSeries.length) {
-                    renderLegend(legend, breakoutSeries);
-                    renderChart(chart, breakoutSeries, "breakout");
-                } else {
-                    renderLegend(legend, totalSeries);
-                    renderChart(chart, totalSeries, "total");
-                }
-                updateToggleLabel();
-            };
-
-            if (toggle) {
-                toggle.addEventListener("click", () => {
-                    mode = mode === "total" ? "breakout" : "total";
-                    render();
-                });
-            }
-
-            render();
-        });
-
-        const updateSelectedList = (select, list, badgeClass, emptyText) => {
-            list.innerHTML = "";
-            const selected = Array.from(select.selectedOptions);
-            if (!selected.length) {
-                const empty = document.createElement("span");
-                empty.className = "finances-selected__empty";
-                empty.textContent = emptyText;
-                list.appendChild(empty);
-                return;
-            }
-            selected.forEach((option) => {
-                const badge = document.createElement("span");
-                badge.className = `badge ${badgeClass}`;
-                badge.textContent = option.textContent.trim();
-                list.appendChild(badge);
-            });
-        };
-
-        document.querySelectorAll(".finances-selected[data-selected-list]").forEach((container) => {
-            const selectId = container.getAttribute("data-selected-list");
-            const badgeClass = container.getAttribute("data-badge-class") || "bg-secondary-subtle";
-            const emptyText = container.getAttribute("data-empty-text") || "None";
-            const select = document.getElementById(selectId);
-            const list = container.querySelector(".finances-selected__list");
-            if (!select || !list) {
-                return;
-            }
-            const render = () => updateSelectedList(select, list, badgeClass, emptyText);
-            render();
-            select.addEventListener("change", render);
-        });
-
-        document.querySelectorAll(".finances-drill-row[data-drill]").forEach((row) => {
-            const handleDrill = () => {
-                const drillType = row.getAttribute("data-drill");
-                const refType = row.getAttribute("data-ref-type");
-                const divisionId = row.getAttribute("data-division-id");
-                if (!drillType) {
-                    return;
-                }
-
-                const params = new URLSearchParams(window.location.search);
-                params.set("drill", drillType);
-                if (drillType === "income_ref" || drillType === "expense_ref") {
-                    if (refType) {
-                        params.set("ref_type", refType);
-                    }
-                    params.delete("division_id");
-                } else if (drillType === "division") {
-                    if (divisionId) {
-                        params.set("division_id", divisionId);
-                    }
-                    params.delete("ref_type");
-                }
-                const query = params.toString();
-                const url = `${window.location.pathname}?${query}#drilldownModal`;
-                window.location.assign(url);
-            };
-
-            row.addEventListener("click", handleDrill);
-            row.addEventListener("keypress", (event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    handleDrill();
-                }
-            });
-            row.setAttribute("tabindex", "0");
-            row.setAttribute("role", "button");
-            row.setAttribute("title", "View transactions");
-        });
-
-        const drilldownModal = document.getElementById("drilldownModal");
-        if (drilldownModal && window.bootstrap && window.bootstrap.Modal) {
-            const modal = new window.bootstrap.Modal(drilldownModal);
-            modal.show();
-        }
-    })();
 {% endblock %}

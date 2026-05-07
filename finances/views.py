@@ -6,6 +6,7 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 # Django
+from django.apps import apps
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q, Sum
@@ -153,11 +154,18 @@ def _series_stats(values, start_day):
     }
 
 
-def _build_daily_series(entries, start_date, end_date, abs_values=False):
+def _build_daily_series(
+    entries,
+    start_date,
+    end_date,
+    abs_values=False,
+    date_field="date",
+    amount_field="amount",
+):
     series = list(
-        entries.annotate(day=TruncDate("date"))
+        entries.annotate(day=TruncDate(date_field))
         .values("day")
-        .annotate(total=Coalesce(Sum("amount"), Decimal("0.00")))
+        .annotate(total=Coalesce(Sum(amount_field), Decimal("0.00")))
         .order_by("day")
     )
     totals_by_day = {row["day"]: row["total"] for row in series}
@@ -181,6 +189,51 @@ def _build_daily_series(entries, start_date, end_date, abs_values=False):
     stats = _series_stats(values, start_date.date())
 
     return points, stats
+
+
+def _build_subsidy_section(user, start_date, end_date, corporation_ids):
+    if not apps.is_installed("aasubsidy"):
+        return None
+    if not user.has_perm("aasubsidy.basic_access"):
+        return None
+
+    subsidy_model = apps.get_model("aasubsidy", "CorporateContractSubsidy")
+    if subsidy_model is None:
+        return None
+
+    subsidy_entries = subsidy_model.objects.filter(
+        review_status=1,
+        paid=True,
+        exempt=False,
+        subsidy_amount__gt=0,
+        contract__date_issued__gte=start_date,
+        contract__date_issued__lte=end_date,
+    )
+    if corporation_ids:
+        subsidy_entries = subsidy_entries.filter(
+            contract__corporation__corporation__corporation_id__in=corporation_ids
+        )
+
+    total_paid = subsidy_entries.aggregate(
+        total=Coalesce(Sum("subsidy_amount"), Decimal("0.00"))
+    )["total"]
+    paid_count = subsidy_entries.count()
+    avg_paid = total_paid / paid_count if paid_count else Decimal("0.00")
+    subsidy_series, subsidy_stats = _build_daily_series(
+        subsidy_entries,
+        start_date,
+        end_date,
+        date_field="contract__date_issued",
+        amount_field="subsidy_amount",
+    )
+
+    return {
+        "total_paid": total_paid,
+        "paid_count": paid_count,
+        "avg_paid": avg_paid,
+        "series": subsidy_series,
+        "stats": subsidy_stats,
+    }
 
 
 def _build_series_by_ref(entries, ref_types, start_date, end_date, abs_values=False):
@@ -403,6 +456,18 @@ def dashboard(request) -> HttpResponse:
             }
         )
 
+    selected_corporation_ids = list(
+        selected_divisions_qs.values_list(
+            "corporation__corporation__corporation_id", flat=True
+        ).distinct()
+    )
+    subsidy_section = _build_subsidy_section(
+        request.user,
+        start_date,
+        end_date,
+        selected_corporation_ids,
+    )
+
     drilldown = None
     drill_type = request.GET.get("drill")
     if drill_type:
@@ -539,6 +604,7 @@ def dashboard(request) -> HttpResponse:
         "expense_series_by_ref": expense_series_by_ref,
         "income_stats": income_stats,
         "expense_stats": expense_stats,
+        "subsidy_section": subsidy_section,
         "drilldown": drilldown,
     }
 
